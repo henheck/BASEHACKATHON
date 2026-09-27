@@ -1,0 +1,894 @@
+<title>Install Requirement Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* One dark operations look on purpose: graphite panels, Base green/lime as the signal color, cyan for the power path. */
+:root{
+  color-scheme:dark;
+  --bg:#0f1214; --bg2:#13171a; --panel:#1a1f23; --panel2:#20262b; --line:#2c343a; --line2:#3a444c;
+  --text:#eef1ef; --muted:#a3ada8; --dim:#6f7a75;
+  --lime:#b2dd79; --lime-d:#77a45a; --green:#1e4d2b; --cyan:#68d8f0; --orange:#ed6c30; --amber:#e8b44c;
+  --yes-bg:rgba(178,221,121,.14); --no-bg:rgba(237,108,48,.15); --maybe-bg:rgba(232,180,76,.13);
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:32px 32px}
+.shell{padding-inline:16px;padding-block:0 64px}
+.mono{font-family:var(--mono)}
+.lbl{font:500 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;margin-inline:-16px;padding:0 16px;background:rgba(15,18,20,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:30px;height:30px;border-radius:7px;background:var(--lime);display:grid;place-items:center}
+.mark span{display:block;width:14px;height:16px;border:2.5px solid #102a17;border-radius:3px;position:relative}
+.mark span::before{content:"";position:absolute;left:3px;right:3px;top:3px;height:3px;background:#102a17;box-shadow:0 5px 0 #102a17}
+.wordmark{display:inline-grid;place-items:center;height:32px;padding:0 10px 0 11px;border:2.5px solid var(--text);border-radius:9px;font:700 19px/1 var(--sans);letter-spacing:.06em;color:var(--text)}
+.brand b{font:600 14px/1.1 var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.brand small{display:block;font:500 10.5px/1.2 var(--mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-top:3px}
+.sep{width:1px;height:26px;background:var(--line)}
+.crumbs{font:500 11.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.crumbs em{font-style:normal;color:var(--text)}
+.readouts{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
+.ro{display:grid;gap:3px}
+.ro b{font:500 12.5px var(--mono);color:var(--text);display:flex;align-items:center;gap:7px}
+.led{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.led.on{background:var(--lime);box-shadow:0 0 8px var(--lime)}
+.led.busy{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* grid */
+.grid{max-width:1320px;margin:18px auto 0;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;position:relative;min-width:0}
+.panel::before,.panel::after{content:"";position:absolute;width:9px;height:9px;border-color:var(--lime-d);border-style:solid;opacity:.8}
+.panel::before{top:-1px;left:-1px;border-width:1.5px 0 0 1.5px}
+.panel::after{bottom:-1px;right:-1px;border-width:0 1.5px 1.5px 0}
+.ph{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.ph .lbl{color:var(--muted)}
+.ph .tag{margin-left:auto;font:500 10.5px var(--mono);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.viewer{grid-column:span 8;align-self:start}
+.verdict{grid-column:span 4;display:flex;flex-direction:column}
+.col4{grid-column:span 4}
+.reqpanel{grid-column:span 7}
+.envelope{grid-column:span 5;align-self:start}
+.gate{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--bg2);font:500 12px var(--mono);letter-spacing:.04em;color:var(--muted)}
+.gate b{color:var(--text);font-weight:600}
+.r summary{padding:14px 16px}
+.rname{font-size:13px}
+.rname .metric{color:var(--lime);font-weight:600}
+.r:has(.chip.maybe) .metric{color:var(--amber)} .r:has(.chip.no) .metric{color:var(--orange)} .r:has(.chip.pend) .metric{color:var(--text)}
+.rlim{font-size:12px}
+@media (max-width:1100px){.viewer,.verdict,.reqpanel,.envelope{grid-column:span 12}.col4{grid-column:span 6}}
+@media (max-width:720px){.col4{grid-column:span 12}.readouts{margin-left:0}}
+
+/* sheet viewer */
+.stage{position:relative;aspect-ratio:16/10;background:#0c1417;overflow:hidden;cursor:pointer}
+.stage svg.plan{position:absolute;inset:0;width:100%;height:100%}
+.stage canvas,.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#f4f4f1}
+.stage input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:3;width:100%}
+.stage.over{outline:2px solid var(--lime);outline-offset:-2px}
+.cta{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;display:grid;justify-items:center;gap:10px;text-align:center;pointer-events:none}
+.cta b{font:600 15px var(--mono);letter-spacing:.16em;color:var(--text);background:rgba(12,20,23,.85);border:1px solid var(--lime-d);padding:12px 20px;border-radius:3px}
+.cta span{font:500 11px var(--mono);letter-spacing:.14em;color:var(--muted)}
+.scan{position:absolute;left:0;right:0;height:80px;top:-80px;z-index:2;background:linear-gradient(180deg,transparent,rgba(104,216,240,.22) 70%,rgba(104,216,240,.9) 100%);pointer-events:none;display:none}
+.reading .scan{display:block;animation:scan 2.2s linear infinite}
+@keyframes scan{to{top:100%}}
+.tb{position:absolute;right:12px;bottom:12px;z-index:2;display:grid;grid-template-columns:auto auto;min-width:240px;max-width:calc(100% - 24px);border:1px solid var(--line2);background:rgba(15,18,20,.9);font:500 10.5px/1.3 var(--mono);letter-spacing:.06em}
+.tb div{padding:6px 9px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);color:var(--dim);text-transform:uppercase}
+.tb div:nth-child(2n){color:var(--text);border-right:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.tb div:nth-last-child(-n+2){border-bottom:0}
+.statusline{padding:9px 14px;border-top:1px solid var(--line);font:500 12px var(--mono);letter-spacing:.04em;color:var(--muted);min-height:36px;display:flex;align-items:center;gap:10px}
+.statusline.err{color:var(--orange)}
+
+/* verdict */
+.vbody{padding:16px 16px 18px;display:grid;gap:16px;flex:1;align-content:start}
+.addr{font:600 21px/1.2 var(--sans);letter-spacing:-.01em;text-wrap:balance}
+.addr.empty{color:var(--dim)}
+.big{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line2);border-radius:3px;background:var(--bg2)}
+.big .word{font:600 20px var(--mono);letter-spacing:.08em}
+.big.yes{border-color:var(--lime-d);background:var(--yes-bg)} .big.yes .word{color:var(--lime)}
+.big.no{border-color:var(--orange);background:var(--no-bg)} .big.no .word{color:var(--orange)}
+.big.maybe{border-color:var(--amber);background:var(--maybe-bg)} .big.maybe .word{color:var(--amber)}
+.big.pend .word{color:var(--dim)}
+.big small{margin-left:auto;font:500 11px var(--mono);color:var(--muted);letter-spacing:.06em;text-align:right}
+.kpis{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:3px}
+.kpi{padding:10px 12px;display:grid;gap:5px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi:nth-child(2n){border-right:0}.kpi:nth-last-child(-n+2){border-bottom:0}
+.kpi b{font:500 19px var(--mono);font-variant-numeric:tabular-nums}
+.kpi b.none{color:var(--dim)}
+.tally{display:grid;gap:7px}
+.tbar{display:flex;height:8px;border-radius:2px;overflow:hidden;background:var(--line)}
+.tbar i{display:block;height:100%}
+.tleg{display:flex;gap:14px;font:500 11px var(--mono);color:var(--muted);letter-spacing:.06em}
+.tleg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:1px;margin-right:6px;vertical-align:0}
+.tleg .y::before{background:var(--lime)} .tleg .n::before{background:var(--orange)} .tleg .m::before{background:var(--amber)}
+.systems{display:grid;gap:6px}
+.sys{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--bg2)}
+.sys.rec{border-color:var(--lime);box-shadow:inset 3px 0 0 var(--lime)}
+.sys .kwh{font:600 19px var(--mono);min-width:66px;font-variant-numeric:tabular-nums}
+.sys .kwh small{font-size:11px;color:var(--muted);margin-left:3px;font-weight:500}
+.sys .nm{font:500 11.5px var(--mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.sys .nm em{display:block;font-style:normal;color:var(--lime);font-size:10.5px;letter-spacing:.14em;margin-top:2px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:64px;padding:4px 9px;border-radius:2px;font:600 11px/1 var(--mono);letter-spacing:.12em;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.yes{color:var(--lime);background:var(--yes-bg);border-color:rgba(178,221,121,.45)}
+.chip.no{color:var(--orange);background:var(--no-bg);border-color:rgba(237,108,48,.5)}
+.chip.maybe{color:var(--amber);background:var(--maybe-bg);border-color:rgba(232,180,76,.45)}
+.chip.pend::before{background:transparent;border:1px solid var(--dim)}
+
+/* requirement tables */
+.rows{display:grid}
+.r{border-bottom:1px solid var(--line)}
+.r:last-child{border-bottom:0}
+.r summary{list-style:none;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 14px;cursor:pointer}
+.r summary::-webkit-details-marker{display:none}
+.r summary:hover,.r.hl summary{background:rgba(178,221,121,.05)}
+.r summary:focus-visible{outline:1px solid var(--lime);outline-offset:-1px}
+.rid{font:500 11px var(--mono);color:var(--dim);letter-spacing:.04em}
+.rname{font:600 12px/1.35 var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.rlim{display:block;font:400 11.5px/1.4 var(--mono);color:var(--muted);letter-spacing:.02em;text-transform:none;margin-top:2px}
+.note{margin:0 14px 12px 58px;padding:8px 10px;border-left:2px solid var(--line2);font:400 12px/1.5 var(--mono);color:var(--muted);background:var(--bg2)}
+.note b{color:var(--dim);font-weight:500;letter-spacing:.1em;margin-right:6px}
+
+/* install envelope diagram */
+.envelope svg{display:block;width:100%;height:auto;background:#0c1417}
+.envelope .legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font:500 10.5px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.envelope .legend span::before{content:"";display:inline-block;width:14px;height:0;border-top:1.5px solid var(--muted);margin-right:6px;vertical-align:3px}
+.envelope .legend .c::before{border-color:var(--cyan)} .envelope .legend .l::before{border-color:var(--lime)} .envelope .legend .o::before{border-top-style:dashed;border-color:var(--orange)}
+svg .g{transition:opacity .2s}
+svg .dimmed .g:not(.focus){opacity:.28}
+svg .st-yes{--s:var(--lime)} svg .st-no{--s:var(--orange)} svg .st-maybe{--s:var(--amber)}
+svg .g .k{stroke:var(--s,#a3ada8)} svg .g .kf{fill:var(--s,#a3ada8)}
+
+/* address bar */
+.addrbar{grid-column:span 12;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;padding:12px 16px}
+.addrin{display:flex;align-items:center;gap:10px;border:1px solid var(--line2);background:var(--bg2);border-radius:3px;padding:0 12px;min-height:46px;margin:0}
+.addrin:focus-within{border-color:var(--lime);box-shadow:0 0 0 3px rgba(178,221,121,.12)}
+.addrin svg{flex:none}
+.addrin input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font:500 16px var(--sans);padding:11px 0}
+.addrin input::placeholder{color:var(--dim)}
+.addrin kbd{font:500 10.5px var(--mono);color:var(--dim);border:1px solid var(--line2);padding:3px 6px;border-radius:2px;letter-spacing:.08em}
+.addrstate{display:flex;align-items:center;gap:8px;font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.addrstate::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.addrstate.ok{color:var(--lime)} .addrstate.q{color:var(--amber)} .addrstate.warn{color:var(--orange)}
+@media (max-width:720px){.addrbar{grid-template-columns:1fr;gap:10px}}
+.src{display:inline-flex;gap:4px;margin-left:8px;vertical-align:1px}
+.src i{font:600 9px/1 var(--mono);letter-spacing:.1em;font-style:normal;padding:3px 4px;border:1px solid var(--line2);border-radius:2px}
+.src i.a{color:var(--cyan);border-color:rgba(104,216,240,.45)} .src i.d{color:var(--lime);border-color:rgba(178,221,121,.45)}
+.note div+div{margin-top:4px}
+.precord{display:grid;gap:10px}
+.facts{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:3px}
+.facts div{padding:8px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);display:grid;gap:4px;min-width:0}
+.facts div:nth-child(2n){border-right:0}
+.facts div:nth-last-child(-n+2){border-bottom:0}
+.facts b{font:500 12.5px var(--mono);color:var(--text);overflow-wrap:anywhere;font-weight:500}
+.ev{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.ev li{font:400 12px/1.45 var(--mono);color:var(--muted);padding-left:14px;position:relative}
+.ev li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:1px;background:var(--cyan)}
+.flags{display:flex;flex-wrap:wrap;gap:6px}
+.flags span{font:600 10.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--amber);border:1px solid rgba(232,180,76,.45);background:var(--maybe-bg);padding:5px 7px;border-radius:2px}
+.srclog{display:grid;border:1px solid var(--line);border-radius:3px}
+.srclog div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:start;padding:7px 10px;border-bottom:1px solid var(--line);font:400 11.5px/1.4 var(--mono);color:var(--muted)}
+.srclog div:last-child{border-bottom:0}
+.srclog b{font-weight:600;letter-spacing:.08em}
+.srclog b.ok{color:var(--lime)} .srclog b.err{color:var(--orange)}
+.srclog em{display:block;font-style:normal;color:var(--dim)}
+.mismatch{border:1px solid var(--orange);background:var(--no-bg);color:var(--text);padding:9px 11px;font:500 12px/1.45 var(--mono);border-radius:3px}
+@media (prefers-reduced-motion:reduce){.reading .scan{animation:none;top:40%}.led.busy{animation:none}}
+</style>
+
+<div class="shell">
+  <header class="bar">
+    <div class="bar-in">
+      <div class="brand">
+        <span class="wordmark" aria-label="PASE">PASE</span>
+        <div><b>Install Requirement Checker</b><small>Base Power unit · plan review</small></div>
+      </div>
+      <div class="sep" aria-hidden="true"></div>
+      <div class="crumbs">Workspace / <em id="crumb">New review</em></div>
+      <div class="readouts">
+        <div class="ro"><span class="lbl">Engine</span><b><i class="led" id="led"></i><span id="engine">Connecting</span></b></div>
+        <div class="ro"><span class="lbl">Sheets</span><b id="sheets">00</b></div>
+        <div class="ro"><span class="lbl">Requirements</span><b>6</b></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel addrbar">
+      <label class="lbl" for="addrInput">Building address</label>
+      <form class="addrin" id="addrForm" autocomplete="off">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5c0 3.4 4.5 8.5 4.5 8.5s4.5-5.1 4.5-8.5A4.5 4.5 0 0 0 8 1.5Z" fill="none" stroke="#b2dd79" stroke-width="1.4"/><circle cx="8" cy="6" r="1.6" fill="#b2dd79"/></svg>
+        <input id="addrInput" type="text" placeholder="Enter a Texas building address · e.g. 8014 Chateau St, Houston, TX 77028" aria-label="Building address">
+        <kbd>ENTER</kbd>
+      </form>
+      <span class="addrstate" id="addrState">No address</span>
+    </section>
+    <section class="panel viewer">
+      <div class="ph"><span class="lbl">Sheet viewer</span><span class="tag" id="sheetTag">A-000 · Site plan</span></div>
+      <div class="stage" id="stage">
+        <svg class="plan" id="plan" viewBox="0 0 800 500" aria-hidden="true"></svg>
+        <div class="cta" id="cta"><b>DROP ARCHITECTURAL DRAWINGS</b><span>PDF · PNG · JPG · WEBP</span></div>
+        <div class="scan" aria-hidden="true"></div>
+        <div class="tb" id="tb"></div>
+        <input type="file" id="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp" aria-label="Drop architectural drawings">
+      </div>
+      <div class="statusline" id="status" aria-live="polite">Awaiting drawings</div>
+    </section>
+
+    <section class="panel verdict">
+      <div class="ph"><span class="lbl">Verdict</span><span class="tag">Base Power unit</span></div>
+      <div class="vbody">
+        <div><div class="lbl" style="margin-bottom:6px">Property</div><div class="addr empty" id="addr">Enter an address or drop drawings</div></div>
+        <div class="big pend" id="big"><span class="word" id="bigWord">AWAITING</span><small id="bigSub">0 / 6 checked</small></div>
+        <div class="kpis">
+          <div class="kpi"><span class="lbl">Main breaker</span><b id="kAmps" class="none">—</b></div>
+          <div class="kpi"><span class="lbl">Wall at meter</span><b id="kRun" class="none">—</b></div>
+          <div class="kpi"><span class="lbl">Side clearance</span><b id="kClr" class="none">—</b></div>
+          <div class="kpi"><span class="lbl">Gas meter</span><b id="kSolar" class="none">—</b></div>
+        </div>
+        <div class="tally"><div class="lbl">Requirements</div><div class="tbar" id="tbar"></div><div class="tleg" id="tleg"></div></div>
+        <div><div class="lbl" style="margin-bottom:8px">Battery options</div><div class="systems" id="systems"></div></div>
+        <div class="gate" id="gate"><span class="lbl">Utility</span><b id="gateTxt">—</b></div>
+        <div class="mismatch" id="mismatch" hidden></div>
+        <div class="precord" id="precord" hidden><div class="lbl">Property record · public data</div><div class="flags" id="flags"></div><div class="facts" id="facts"></div><ul class="ev" id="ev"></ul><div class="lbl">Sources queried</div><div class="srclog" id="srclog"></div></div>
+      </div>
+    </section>
+
+    <section class="panel reqpanel"><div class="ph"><span class="lbl">Install requirements · single battery</span><span class="tag">6 checks</span></div><div class="rows" id="reqs"></div></section>
+    <section class="panel envelope">
+      <div class="ph"><span class="lbl">Install envelope · plan view</span><span class="tag" id="envTag">TYPICAL · NOT FROM DRAWINGS</span></div>
+      <svg id="env" viewBox="0 0 420 330" role="img" aria-label="Plan view of the battery install envelope beside the meter"></svg>
+      <div class="legend"><span class="c">Harness</span><span class="l">Battery</span><span class="o">Keep-out</span><span>Clearance</span></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+(() => {
+const REQS = [
+  {id:"E1", g:"elec", req:"Main breaker 100–200A", lim:"Austin 150–200A", gate:"all",
+   rule:"Main breaker is 100–200A (City of Austin: 150–200A). Over 200A or under 100A is No."},
+  {id:"E2", g:"elec", req:"200A panel for dual battery", lim:"Required for 50 kWh", gate:"none",
+   rule:"Yes if the panel/main is 200A, No if under 200A."},
+  {id:"E3", g:"elec", req:"200A panel if solar", lim:"No solar passes", gate:"all",
+   rule:"Yes if there is no solar shown, or solar with a 200A panel. No if solar with a panel under 200A."},
+  {id:"E4", g:"elec", req:"One main panel", lim:"Subpanels allowed", gate:"all",
+   rule:"Exactly one main breaker panel. Two main panels or split 320/400A service is No."},
+  {id:"E5", g:"elec", req:"Meter and panel share a wall", lim:"Side by side or back to back", gate:"all",
+   rule:"Electric meter and main panel share one exterior wall: side by side outside, or panel indoors directly behind the meter wall."},
+  {id:"E6", g:"elec", req:"Panel not in a closet", lim:"Away from combustibles", gate:"all",
+   rule:"Main panel is not located inside a closet."},
+  {id:"E7", g:"elec", req:"Meter at or below 6 ft", lim:"Above finished grade", gate:"all",
+   rule:"Meter no higher than 6 ft above grade. Standard residential height is Yes unless elevations show otherwise."},
+  {id:"E8", g:"elec", req:"Working space at meter and panel", lim:"30\" H × 36\" W clear", gate:"all",
+   rule:"30 in high × 36 in wide clear working space in front of the meter and the main panel."},
+  {id:"E9", g:"elec", req:"Meter and conduit undamaged", lim:"Verified by photo", gate:"no",
+   rule:"Meter and conduit securely attached and undamaged. Drawings rarely show condition; answer inconclusive unless a note says otherwise."},
+  {id:"E10", g:"elec", req:"Transfer switch wall space", lim:"30\" clear beside meter · 13\" unit", gate:"all",
+   rule:"About 30 in of clear wall immediately beside the meter, not blocked by fences, solar equipment, doors or windows."},
+  {id:"S1", g:"space", req:"Clear wall run from meter", lim:"6'-0\" single · 9'-0\" dual", gate:"all",
+   rule:"Continuous exterior wall run starting at the meter: 3 ft for the transfer switch, then 3 ft per battery. Yes if at least 6 ft. Report wall_run_ft."},
+  {id:"S2", g:"space", req:"Footprint per battery", lim:"3'-0\" × 3'-0\" · 36\" tall", gate:"all",
+   rule:"A 3 × 3 ft ground area per battery next to the wall, with nothing overhead lower than ~36 in."},
+  {id:"S3", g:"space", req:"Within 20 ft of meter", lim:"No trenching · no attic runs", gate:"all",
+   rule:"Battery location within 20 ft of the meter along the same wall; no trenching or attic conduit needed."},
+  {id:"S4", g:"space", req:"Within 1 ft of wall", lim:"Set against the house", gate:"all",
+   rule:"The battery spot can sit within 1 ft of the wall (no bump-outs, stairs or equipment forcing it away)."},
+  {id:"S5", g:"space", req:"3 ft from gas meter", lim:"No gas meter passes", gate:"all",
+   rule:"Battery spot at least 3 ft from any gas meter. Yes if no gas meter."},
+  {id:"S6", g:"space", req:"Not in front of equipment or windows", lim:"Meters · panels · solar · windows", gate:"all",
+   rule:"The battery spot is not in front of an electric meter, breaker panel, solar equipment, or a window."},
+  {id:"S7", g:"space", req:"Walkway clearance", lim:"32–38\" clear past battery", gate:"all",
+   rule:"From the wall to the nearest fixed obstruction (fence, property line, neighbor structure, AC pad): at least 56 in (24 in battery + 32 in walkway). Report side_clearance_in."},
+  {id:"S8", g:"space", req:"Level ground", lim:"Integrated base · no poured pad", gate:"all",
+   rule:"Ground at the battery spot reasonably level for the integrated base. No for steep grade, retaining walls or swales there."},
+  {id:"S9", g:"space", req:"Obstructions removable", lim:"Shrubs may be removed", gate:"no",
+   rule:"Anything in the battery spot is removable (bushes, planters). No only for permanent structures that can't move."},
+  {id:"S10", g:"space", req:"Exterior, beside meter", lim:"All equipment outdoors", gate:"all",
+   rule:"The meter is on an exterior wall with an outdoor battery spot beside it."},
+];
+const CORE = [
+  {id:"C1", req:"Panel size", metric:"100–200A main breaker · 1 main panel", need:"Electrical sheet, riser or panel label", lim:"One main panel · 100–200A main breaker (Austin 150–200A)", from:["E1","E4"]},
+  {id:"C2", req:"Meter location", metric:"Outside wall · ≤6 ft · panel on same wall", need:"Electrical or site plan with meter shown", lim:"Meter on an outside wall at or below 6 ft · panel on the same wall", from:["E5","E7","S10"]},
+  {id:"C3", req:"Wall space", metric:"≥6 ft clear wall from meter · no windows", need:"Elevations + floor plan at the meter wall", lim:"≈6 ft clear wall from meter (30\" switch + 3×3 ft pad) · no windows or equipment", from:["S1","E10","S6","S3","S4","S2"]},
+  {id:"C4", req:"Side clearance", metric:"≥56 in wall to fence or lot line", need:"Plot plan setbacks or parcel + footprint", lim:"≈56\" wall to fence or lot line (pad + 32–38\" walkway)", from:["S7"]},
+  {id:"C5", req:"Gas meter", metric:"≥3 ft from pad · or no gas service", need:"Site or gas plan, or all-electric schedule", lim:"Pad at least 3 ft from the gas meter · or no gas service", from:["S5"]},
+  {id:"C6", req:"NEC check", metric:"110.26 working space 30\"W × 36\"D · panel not in a closet (240.24) · meter secure (110.12)", need:"Electrical plan clearances, panel location, meter photo", lim:"NEC compliance at the meter and panel", from:["E8","E6","E9"]},
+];
+const OLD2CORE = {}; CORE.forEach(c => c.from.forEach(o => OLD2CORE[o] = c.id));
+function collapse(checks20) {
+  const out = {};
+  CORE.forEach(c => {
+    const parts = c.from.map(id => checks20[id]).filter(Boolean);
+    const st = parts.map(p => p.status);
+    const status = st.includes("no") ? "no" : (st.length && st.every(x => x === "yes")) ? "yes" : "maybe";
+    const src = [...new Set(parts.flatMap(p => p.src || []))];
+    const notes = [];
+    parts.forEach(p => (p.notes || []).forEach(n => { if (!notes.some(m => m[1] === n[1])) notes.push(n); }));
+    out[c.id] = {status, src, notes: notes.slice(0, 5)};
+  });
+  return out;
+}
+const SYSTEMS = [
+  {id:"double", kwh:"50", name:"Double · 2 units"},
+  {id:"single", kwh:"25", name:"Single · 1 unit"},
+  {id:"beta", kwh:"39.2", name:"Single · beta areas"},
+];
+const WORD = {yes:"YES", no:"NO", maybe:"MAYBE", pend:"—"};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const chip = s => `<span class="chip ${s}">${WORD[s]}</span>`;
+let sample = null, imgMax = 8, running = false, current = null;
+let db = null, addrRec = null, dwgRes = null, typed = "";
+const SAMPLE_RE = /SAMPLE-PLANS|104-Gunner-Rd-ARCH|8014-Chateau-St-Houston-ARCH/i;
+const DEFAULT_ADDRESS = "8014 Chateau St, Houston, TX 77028";
+const CHATEAU = {"address": "8014 Chateau St, Houston, TX 77028", "main_breaker_amps": 200, "solar": "no", "wall_run_ft": 11, "side_clearance_in": 114, "checks": {"E1": {"status": "yes", "note": "A4.0 compliance schedule · E1.0 riser: (N) 200A main breaker; (E) 100A fuse panel removed."}, "E2": {"status": "yes", "note": "A4.0 compliance schedule · E1.0: (N) 200A service and 200A bus."}, "E3": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 7 and E1.0: no photovoltaic system."}, "E4": {"status": "yes", "note": "A4.0 compliance schedule · E1.0: one main panel, no subpanels."}, "E5": {"status": "yes", "note": "A4.0 compliance schedule · E1.0 partial plan: MP back-to-back with exterior meter EM on the east wall."}, "E6": {"status": "yes", "note": "A4.0 compliance schedule · E1.0: panel on utility room wall, not a closet (NEC 240.24(D))."}, "E7": {"status": "yes", "note": "A4.0 compliance schedule · A3.0 and E1.0 schedule: meter 5'-0\" A.F.F. to center."}, "E8": {"status": "yes", "note": "A4.0 compliance schedule · E1.0: 36\" x 30\" working space at meter and panel (NEC 110.26)."}, "E9": {"status": "yes", "note": "A4.0 compliance schedule · E1.0 note 4: new meter socket and mast, securely attached (NEC 110.12)."}, "E10": {"status": "yes", "note": "A4.0 compliance schedule · E1.0 note 2: 30\" clear wall beside the meter for the transfer switch."}, "S1": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 and A3.0: 11'-0\" clear east wall from the meter, no windows or doors."}, "S2": {"status": "yes", "note": "A4.0 compliance schedule · A1.0: two 3'x3' pads drawn on the east wall."}, "S3": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 4: pads within 20'-0\" of the meter, surface harness."}, "S4": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 4: pads within 1'-0\" of the wall."}, "S5": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 2: gas meter on the west wall, opposite side of the house (>30')."}, "S6": {"status": "yes", "note": "A4.0 compliance schedule · A3.0: windows at 11'-0\" and 18'-0\" from EM, beyond the battery zone."}, "S7": {"status": "yes", "note": "A4.0 compliance schedule · A1.0: east side yard 9'-6\" (114\") wall to fence."}, "S8": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 6: pad grade level \u00b11%; FEMA Zone X."}, "S9": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 6: battery zone kept clear of A/C, hose bibs and landscaping."}, "S10": {"status": "yes", "note": "A4.0 compliance schedule · A1.0 note 1: meter on the exterior east wall."}}, "layout": {"sheets": "A1.0 / E1.0 / A3.0 / A4.0", "meter_wall_length_ft": 25, "clear_wall_from_meter_ft": 11, "windows": [{"from_meter_ft": 11, "width_ft": 3, "floor": 1}, {"from_meter_ft": 18, "width_ft": 3, "floor": 1}], "doors": [], "gas_service": "yes", "gas_meter_wall": "other", "gas_meter_from_meter_ft": null, "side_clearance_in": 114, "fence": "yes", "meter_height_ft": 5}};
+const RECORDED = {"address": "104 Gunner Rd, Buda, TX 78610", "main_breaker_amps": 200, "solar": "no", "wall_run_ft": 9, "side_clearance_in": 144, "checks": {"E1": {"status": "yes", "note": "E1.0 riser: 200A main breaker per unit, 120/240V."}, "E2": {"status": "yes", "note": "E1.0: 200A service and 200A bus per unit."}, "E3": {"status": "yes", "note": "A1.0 note 7 and E1.0 riser: no photovoltaic system."}, "E4": {"status": "yes", "note": "E1.0: one main panel per dwelling unit, no subpanels."}, "E5": {"status": "yes", "note": "E1.0 partial plan: MP-A back-to-back with exterior meter EM-A on garage wall."}, "E6": {"status": "yes", "note": "E1.0: panel on garage wall, noted not a closet."}, "E7": {"status": "yes", "note": "A3.0 and E1.0 schedule: meter at 5'-0\" A.F.F. to center."}, "E8": {"status": "yes", "note": "E1.0: 36\" x 30\" clear working space shown at meter and panel."}, "E9": {"status": "yes", "note": "New 2025 CL200 meter socket and service lateral per E1.0."}, "E10": {"status": "yes", "note": "E1.0 note 2: 30\" clear wall reserved beside meter for transfer switch."}, "S1": {"status": "yes", "note": "A1.0 and A3.0: 9'-0\" clear wall from meter, no windows or doors."}, "S2": {"status": "yes", "note": "A1.0: two 3'x3' battery pads drawn per unit."}, "S3": {"status": "yes", "note": "A1.0 note 3: pads within 20'-0\" of meter, no trenching."}, "S4": {"status": "yes", "note": "A1.0 note 3: pads within 1'-0\" of wall."}, "S5": {"status": "yes", "note": "A1.0 note 1: all-electric units, no gas meter on site."}, "S6": {"status": "yes", "note": "A3.0: battery zone wall has no windows; 2nd-floor windows >10' away."}, "S7": {"status": "yes", "note": "A1.0: 12'-0\" side yard wall to fence (needs \u226556\")."}, "S8": {"status": "yes", "note": "A1.0 note 5 and A3.0: pad area graded level \u00b11%; FEMA Zone X."}, "S9": {"status": "yes", "note": "A1.0 note 4: battery zone kept clear of landscaping, A/C and fence posts."}, "S10": {"status": "yes", "note": "A1.0 note 2: meters on exterior garage side walls."}}, "layout": {"sheets": "A1.0 / E1.0 / A3.0", "meter_wall_length_ft": 44, "clear_wall_from_meter_ft": 9, "windows": [{"from_meter_ft": 26, "width_ft": 4, "floor": 2}, {"from_meter_ft": 34, "width_ft": 4, "floor": 2}], "doors": [], "gas_service": "no", "gas_meter_from_meter_ft": null, "side_clearance_in": 144, "fence": "yes", "meter_height_ft": 5}};
+
+/* ---------- 2D site plan placeholder (drawn, not a model) ---------- */
+function drawPlan() {
+  const L = "#3b5a56", M = "#5f8a83", H = "#8fb7ae";
+  let s = `<defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="${L}" stroke-width="1"/></pattern>
+    <pattern id="fine" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#132226" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#fine)"/>`;
+  // street + curb
+  s += `<rect x="0" y="440" width="800" height="60" fill="#10191c"/><line x1="0" y1="440" x2="800" y2="440" stroke="${M}" stroke-width="1.2"/>
+    <line x1="0" y1="470" x2="800" y2="470" stroke="${L}" stroke-dasharray="18 12"/>
+    <text x="24" y="489" fill="${M}" font-family="IBM Plex Mono" font-size="10" letter-spacing="2">STREET · R.O.W.</text>`;
+  // property line + setbacks
+  s += `<rect x="120" y="40" width="520" height="380" fill="none" stroke="${H}" stroke-width="1.2" stroke-dasharray="14 5 3 5"/>
+    <rect x="165" y="85" width="430" height="275" fill="none" stroke="${L}" stroke-dasharray="4 4"/>
+    <text x="126" y="34" fill="${M}" font-family="IBM Plex Mono" font-size="10" letter-spacing="1.5">PROPERTY LINE</text>`;
+  // fence on side yard
+  s += `<line x1="640" y1="60" x2="640" y2="400" stroke="${M}" stroke-width="2"/>`;
+  for (let y = 70; y < 400; y += 22) s += `<line x1="635" y1="${y}" x2="645" y2="${y}" stroke="${M}"/>`;
+  // house footprint
+  const house = "M205 120 H560 V300 H440 V340 H300 V300 H205 Z";
+  s += `<path d="${house}" fill="url(#hatch)" stroke="${H}" stroke-width="2.4"/>
+    <path d="${house}" fill="none" stroke="#0c1417" stroke-width="0" />
+    <text x="382" y="168" fill="${H}" font-family="IBM Plex Mono" font-size="12" letter-spacing="3" text-anchor="middle">RESIDENCE</text>
+    <text x="382" y="185" fill="${M}" font-family="IBM Plex Mono" font-size="9.5" letter-spacing="2" text-anchor="middle">F.F.E. 100'-0"</text>`;
+  // driveway + walk
+  s += `<rect x="300" y="340" width="140" height="100" fill="none" stroke="${L}"/><text x="370" y="395" fill="${M}" font-family="IBM Plex Mono" font-size="9.5" letter-spacing="2" text-anchor="middle">DRIVE</text>`;
+  // meter wall: meter, ATS, battery spot
+  s += `<line x1="560" y1="170" x2="560" y2="262" stroke="#68d8f0" stroke-width="2" opacity=".85"/>
+    <rect x="561" y="238" width="10" height="16" fill="#0c1417" stroke="#68d8f0" stroke-width="1.4"/>
+    <text x="578" y="250" fill="#68d8f0" font-family="IBM Plex Mono" font-size="9.5" letter-spacing="1.5">EM</text>
+    <rect x="562" y="176" width="36" height="36" fill="rgba(178,221,121,.12)" stroke="#b2dd79" stroke-width="1.6"/>
+    <rect x="562" y="140" width="36" height="36" fill="none" stroke="#b2dd79" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <text x="604" y="198" fill="#b2dd79" font-family="IBM Plex Mono" font-size="9.5" letter-spacing="1.5">BATT</text>`;
+  // dimension strings
+  const dim = (x1, y1, x2, y2, t, vert) => {
+    const tx = vert ? x1 - 8 : (x1 + x2) / 2, ty = vert ? (y1 + y2) / 2 : y1 - 6;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${M}" stroke-width="1"/>
+      <line x1="${x1 - (vert ? 5 : 4)}" y1="${y1 + (vert ? 0 : 4)}" x2="${x1 + (vert ? 5 : 4)}" y2="${y1 - (vert ? 0 : 4)}" stroke="${H}" stroke-width="1.4"/>
+      <line x1="${x2 - (vert ? 5 : 4)}" y1="${y2 + (vert ? 0 : 4)}" x2="${x2 + (vert ? 5 : 4)}" y2="${y2 - (vert ? 0 : 4)}" stroke="${H}" stroke-width="1.4"/>
+      <text x="${tx}" y="${ty}" fill="${H}" font-family="IBM Plex Mono" font-size="10" letter-spacing="1" text-anchor="middle" ${vert ? `transform="rotate(-90 ${tx} ${ty})"` : ""}>${t}</text>`;
+  };
+  s += dim(205, 105, 560, 105, `59'-2"`) + dim(560, 380, 640, 380, `13'-4"`) + dim(95, 120, 95, 300, `30'-0"`, true);
+  // north arrow + scale bar
+  s += `<g transform="translate(730 90)"><circle r="22" fill="none" stroke="${L}"/><path d="M0 -18 L7 8 L0 3 L-7 8 Z" fill="${H}"/><text y="-28" fill="${H}" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">N</text></g>
+    <g transform="translate(24 410)">${[0,1,2,3].map(i => `<rect x="${i*20}" y="0" width="20" height="5" fill="${i%2 ? "none" : M}" stroke="${M}"/>`).join("")}
+    <text x="0" y="18" fill="${M}" font-family="IBM Plex Mono" font-size="9">0</text><text x="74" y="18" fill="${M}" font-family="IBM Plex Mono" font-size="9">20 FT</text></g>`;
+  $("#plan").innerHTML = s;
+}
+
+/* ---------- install envelope, plan view (drawn to scale from the drawings' layout) ---------- */
+const TYPICAL_LAYOUT = {source: "typical", clearFt: 6, windows: [{fromFt: 10.5, widthFt: 3, floor: 1}], doors: [], gas: {present: true, fromFt: 15}, clearanceIn: 56, fence: true, meterHeightFt: null, sheets: ""};
+function layoutFrom(raw) {
+  const l = raw && raw.layout;
+  if (!l || typeof l !== "object") return null;
+  const num = v => (v === null || v === undefined || v === "" || isNaN(Number(v))) ? null : Number(v);
+  const list = a => Array.isArray(a) ? a.map(w => ({fromFt: num(w.from_meter_ft), widthFt: num(w.width_ft) || 3, floor: num(w.floor) || 1})).filter(w => w.fromFt !== null) : [];
+  const gasSvc = String(l.gas_service || "unknown").toLowerCase();
+  return {
+    source: "drawings",
+    clearFt: num(l.clear_wall_from_meter_ft) ?? num(raw.wall_run_ft),
+    wallFt: num(l.meter_wall_length_ft),
+    windows: list(l.windows), doors: list(l.doors),
+    gas: gasSvc === "no" ? {present: false} : String(l.gas_meter_wall || "").toLowerCase() === "other" ? {present: true, other: true} : num(l.gas_meter_from_meter_ft) !== null ? {present: true, fromFt: num(l.gas_meter_from_meter_ft)} : {present: null},
+    clearanceIn: num(l.side_clearance_in) ?? num(raw.side_clearance_in),
+    fence: l.fence === "yes" ? true : l.fence === "no" ? false : null,
+    meterHeightFt: num(l.meter_height_ft),
+    sheets: String(l.sheets || "").slice(0, 40)
+  };
+}
+const fmtFt = ft => { const t = Math.round(Math.abs(ft) * 12); return `${Math.floor(t / 12)}'-${t % 12}"`; };
+
+function drawEnvelope(st, layout, units) {
+  const L = layout || TYPICAL_LAYOUT, typical = L.source !== "drawings";
+  const c = id => st ? "st-" + st(id) : "";
+  const T = (x, y, t, a = "start", col = "#a3ada8", size = 9) => `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${col}" font-family="IBM Plex Mono" font-size="${size}" letter-spacing="0.6" text-anchor="${a}">${t}</text>`;
+  const tickV = (x, y) => `<line x1="${x}" y1="${y - 4}" x2="${x}" y2="${y + 4}" class="k" stroke-width="1.3"/>`;
+  const tickH = (x, y) => `<line x1="${x - 4}" y1="${y}" x2="${x + 4}" y2="${y}" class="k" stroke-width="1.3"/>`;
+  const key = (x, y, k) => `<circle cx="${x}" cy="${y}" r="6.5" fill="#0c1417" stroke="#6f7a75" stroke-width="1"/>` + T(x, y + 3.2, k, "middle", "#eef1ef", 8.5);
+  const n = units === 2 ? 2 : 1;
+  const zoneFt = 3 + 3 * n;
+  const openings = L.windows.map(w => ({...w, kind: "WINDOW"})).concat(L.doors.map(w => ({...w, kind: "DOOR"})));
+  const winEnd = Math.max(0, ...openings.filter(w => w.fromFt < 22).map(w => w.fromFt + w.widthFt));
+  const gasOn = L.gas && L.gas.present && L.gas.fromFt != null;
+  const span = Math.min(24, Math.max(11, zoneFt + 3, (L.clearFt || 0) + 2, winEnd + 1.5, gasOn && L.gas.fromFt > 0 ? L.gas.fromFt + 3.5 : 0));
+  const behind = Math.max(2.5, gasOn && L.gas.fromFt < 0 ? -L.gas.fromFt + 3.5 : 0, ...openings.filter(w => w.fromFt < 0).map(w => -w.fromFt + 0.5));
+  const clrIn = L.clearanceIn, clrFt = clrIn ? clrIn / 12 : 56 / 12;
+  const WY = 62, BOTTOM = 196;
+  const PX = Math.min(22, 372 / (span + behind), (BOTTOM - WY) / Math.max(clrFt, 4));
+  const MX = 404 - behind * PX;
+  const X = ft => MX - ft * PX, Y = ft => WY + ft * PX;
+  const notes = [];
+  const note = (txt, col = "#a3ada8") => { notes.push([txt, col]); return String(notes.length); };
+  let s = `<defs><pattern id="wh" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#4d5a55" stroke-width="1.2"/></pattern>
+    <pattern id="wk" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#26333a" stroke-width="2"/></pattern></defs>`;
+  s += `<rect x="16" y="40" width="388" height="22" fill="url(#wh)" stroke="#6f7a75" stroke-width="1.2"/>` + T(20, 20, "EXTERIOR WALL · METER SIDE", "start", "#6f7a75", 8.5);
+
+  // meter + NEC working space (E8)
+  const kEM = note(`EM · ELECTRIC METER${L.meterHeightFt ? ` · ${fmtFt(L.meterHeightFt)} A.F.F.` : ""} · 36" × 30" CLEAR (NEC 110.26)`, "#68d8f0");
+  s += `<g class="g ${c("E8")}" data-r="E8"><rect x="${MX - 1.5 * PX}" y="${WY + 2}" width="${3 * PX}" height="${2.5 * PX}" fill="none" class="k" stroke-width="1" stroke-dasharray="5 3"/></g>`;
+  s += `<rect x="${MX - 8}" y="${WY}" width="16" height="9" fill="#0c1417" stroke="#68d8f0" stroke-width="1.4"/><circle cx="${MX}" cy="${WY + 4.5}" r="2.4" fill="#68d8f0"/>` + key(Math.min(MX + 1.5 * PX + 9, 398), WY + 2.5 * PX, kEM);
+
+  // transfer switch zone (E10)
+  s += `<g class="g ${c("E10")}" data-r="E10"><rect x="${X(2.5)}" y="${WY}" width="${2.5 * PX - 10}" height="7" class="kf" opacity=".9"/>
+    <line x1="${X(2.5)}" y1="31" x2="${MX}" y2="31" class="k" stroke-width="1"/>${tickV(X(2.5), 31)}${tickV(MX, 31)}${T(X(1.25), 26, "30\"", "middle", "#a3ada8", 8.5)}</g>`;
+
+  // openings on the meter wall (S6)
+  s += `<g class="g ${c("S6")}" data-r="S6">`;
+  let wi = 0;
+  openings.forEach(w => {
+    let x1 = X(w.fromFt + w.widthFt), x2 = X(w.fromFt);
+    const tag = (w.kind === "DOOR" ? "D" : "W") + (++wi);
+    const k = note(`${tag} · ${w.kind}${w.floor > 1 ? " (2ND FLOOR)" : ""} · ${fmtFt(w.fromFt)} FROM EM, ${fmtFt(w.widthFt)} WIDE`, "#a3ada8");
+    if (x1 > 404) return;
+    if (x2 < 16) { s += `<path d="M18 50 l8 -4 v8 z" class="kf"/>` + key(34, 50, k); return; }
+    x1 = Math.max(16, x1);
+    s += `<line x1="${x1}" y1="47" x2="${x2}" y2="47" class="k" stroke-width="1"/><line x1="${x1}" y1="55" x2="${x2}" y2="55" class="k" stroke-width="1"/>`;
+    if (w.floor <= 1) s += `<rect x="${x1}" y="${WY + 2}" width="${x2 - x1}" height="${3 * PX}" fill="none" class="k" stroke-width="1" stroke-dasharray="3 3"/>`;
+    s += key((x1 + x2) / 2, 31, k);
+  });
+  if (!openings.length) note(typical ? "WINDOWS · NOT FROM DRAWINGS" : "NO WINDOWS OR DOORS ON THE METER WALL", "#6f7a75");
+  s += `</g>`;
+
+  // gas meter + 3 ft keep-out (S5)
+  s += `<g class="g ${c("S5")}" data-r="S5">`;
+  if (gasOn) {
+    const gx = X(L.gas.fromFt);
+    const k = note(`GM · GAS METER ${fmtFt(L.gas.fromFt)} FROM EM · 3'-0" KEEP-OUT`, "#ed6c30");
+    s += `<circle cx="${gx}" cy="${WY + 4}" r="${3 * PX}" fill="rgba(237,108,48,.05)" stroke="#ed6c30" stroke-width="1.2" stroke-dasharray="5 4" class="k"/>
+      <rect x="${gx - 7}" y="${WY}" width="14" height="10" fill="#0c1417" stroke="#ed6c30" stroke-width="1.3" class="k"/>` + key(gx, WY + 20, k);
+  } else if (L.gas && L.gas.other) note("GM · GAS METER ON A DIFFERENT WALL · WELL OVER 3'-0\" FROM THE BATTERY ZONE", "#a3ada8");
+  else note(L.gas && L.gas.present === false ? "NO GAS SERVICE ON SITE" : "GAS METER · NOT SHOWN ON DRAWINGS", L.gas && L.gas.present === false ? "#6f7a75" : "#e8b44c");
+  s += `</g>`;
+
+  // battery pads (S2) + wall offset (S4)
+  s += `<g class="g ${c("S2")}" data-r="S2">`;
+  for (let i = 0; i < n; i++) {
+    const x2 = X(3 + 3 * i) - 1, x1 = X(6 + 3 * i) + 1, y1 = WY + 2, y2 = Y(3);
+    s += `<rect x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}" fill="rgba(178,221,121,.10)" stroke="#b2dd79" stroke-width="1.8" class="k"/>
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#b2dd79" stroke-width=".6" opacity=".6" class="k"/><line x1="${x2}" y1="${y1}" x2="${x1}" y2="${y2}" stroke="#b2dd79" stroke-width=".6" opacity=".6" class="k"/>${T((x1 + x2) / 2, (y1 + y2) / 2 + 3, "U" + (i + 1), "middle", "#b2dd79", 9)}`;
+  }
+  note(`U${n > 1 ? "1–U2" : "1"} · ${n} × 3'-0" × 3'-0" PAD${n > 1 ? "S" : ""} ≤ 1'-0" FROM WALL · 30" SWITCH BESIDE EM`, "#b2dd79");
+  s += `</g><g class="g ${c("S4")}" data-r="S4"><line x1="${X(zoneFt)}" y1="${Y(3) + 3}" x2="${X(3)}" y2="${Y(3) + 3}" class="k" stroke-width=".8" stroke-dasharray="2 2"/></g>`;
+
+  // walkway + fence (S7)
+  const fy = Y(clrFt);
+  s += `<g class="g ${c("S7")}" data-r="S7"><rect x="${X(zoneFt)}" y="${Y(3) + 6}" width="${(zoneFt - 3) * PX}" height="${Math.max(0, fy - Y(3) - 10)}" fill="url(#wk)"/>
+    <line x1="16" y1="${fy}" x2="404" y2="${fy}" class="k" stroke-width="2" ${clrIn && L.fence !== false ? "" : 'stroke-dasharray="6 4"'}/>`;
+  for (let x = 30; x < 404; x += 40) s += `<line x1="${x}" y1="${fy - 4}" x2="${x}" y2="${fy + 4}" class="k" stroke-width="1.2"/>`;
+  s += `<line x1="410" y1="${WY}" x2="410" y2="${fy}" class="k" stroke-width="1"/>${tickH(410, WY)}${tickH(410, fy)}</g>`;
+  s += T(20, fy - 6, clrIn ? `${fmtFt(clrFt)} TO ${L.fence === false ? "LOT LINE" : "FENCE"}` : "FENCE · NOT SHOWN", "start", clrIn ? "#eef1ef" : "#e8b44c", 9);
+  note(clrIn ? `SIDE CLEARANCE ${fmtFt(clrFt)} (${Math.round(clrIn)} IN) WALL TO ${L.fence === false ? "LOT LINE" : "FENCE"} · 56 IN MIN.` : "SIDE CLEARANCE · NOT SHOWN (56 IN MIN.)", clrIn ? "#a3ada8" : "#e8b44c");
+
+  // clear wall run from the meter (S1)
+  const run = L.clearFt, dimY = Math.min(fy + 18, 212);
+  s += `<g class="g ${c("S1")}" data-r="S1">`;
+  if (run) s += `<line x1="${X(run)}" y1="${dimY}" x2="${MX}" y2="${dimY}" class="k" stroke-width="1"/>${tickV(X(run), dimY)}${tickV(MX, dimY)}` + T(X(run / 2), dimY - 5, fmtFt(run), "middle", "#eef1ef", 9);
+  s += `</g>`;
+  note(run ? `CLEAR WALL ${fmtFt(run)} FROM EM${typical ? " (MINIMUM)" : ""} · ${zoneFt}'-0" NEEDED FOR ${n} UNIT${n > 1 ? "S" : ""}` : "CLEAR WALL RUN · NOT SHOWN", run ? "#eef1ef" : "#e8b44c");
+
+  // harness along the wall (S3)
+  const hx = X(3 + 3 * n - 1.5);
+  s += `<g class="g ${c("S3")}" data-r="S3"><polyline points="${MX},${WY + 9} ${MX},${WY + 12} ${X(1.25)},${WY + 12} ${X(1.25)},${WY + 8} ${hx},${WY + 8}" fill="none" stroke="#68d8f0" stroke-width="2" stroke-linecap="round"/></g>`;
+  note(`HARNESS ≈ ${fmtFt(3 + 3 * n - 1.5)} ALONG WALL (≤ 20'-0") · NO TRENCH, NO ATTIC`, "#68d8f0");
+
+  // keynotes
+  const ky = 230;
+  s += `<line x1="16" y1="${ky - 10}" x2="404" y2="${ky - 10}" stroke="#2c343a" stroke-width="1"/>` + T(16, ky + 1, "KEYNOTES", "start", "#6f7a75", 8);
+  notes.forEach(([t, col], i) => {
+    const y = ky + 13 + i * 11.5;
+    s += T(22, y, String(i + 1).padStart(2, " ") + ".", "end", "#6f7a75", 8) + T(26, y, t, "start", col, 7.8);
+  });
+  const vbH = ky + 20 + notes.length * 11.5 + 20;
+  s += `<g transform="translate(330 ${vbH - 14})">${[0, 1, 2].map(i => `<rect x="${i * PX}" y="0" width="${PX}" height="4" fill="${i % 2 ? "none" : "#6f7a75"}" stroke="#6f7a75"/>`).join("")}${T(-6, 5, "3 FT", "end", "#6f7a75", 8)}</g>`;
+  s = s.replace(/data-r="([A-Z]\d+)"/g, (m, id) => `data-r="${OLD2CORE[id] || id}"`);
+  const env = $("#env");
+  env.setAttribute("viewBox", `0 0 420 ${Math.round(vbH)}`);
+  env.innerHTML = s;
+  $("#envTag").textContent = typical ? "TYPICAL · NOT FROM DRAWINGS" : `FROM DRAWINGS${L.sheets ? " · " + L.sheets : ""} · TO SCALE`;
+}
+
+/* ---------- render ---------- */
+function srcLine(c, r) {
+  if (!c || !c.notes.length) return "Source: " + r.need;
+  const pref = c.status === "maybe" ? c.notes : c.notes.filter(n => (n[0] === "DWG" && c.src.includes("d")) || (n[0] === "ADDR" && c.src.includes("a")));
+  const n = (pref.length ? pref : c.notes)[0];
+  return `Source · ${n[0] === "DWG" ? "Drawings" : "Public records"}: ${n[1]}`;
+}
+function render(res) {
+  current = res;
+  const st = id => { const c = res && res.core[OLD2CORE[id] || id]; return c ? c.status : "pend"; };
+  const row = r => {
+    const c = res && res.core[r.id], s = c ? c.status : "pend";
+    const tags = c && c.src.length ? `<span class="src">${c.src.map(x => `<i class="${x}">${x === "a" ? "ADDR" : "DWG"}</i>`).join("")}</span>` : "";
+    const notes = c && c.notes.length ? `<div class="note">${c.notes.map(([k, n]) => `<div><b>${k}</b>${esc(n)}</div>`).join("")}</div>` : "";
+    return `<details class="r" data-r="${r.id}"><summary>
+      <span class="rid">${r.id}</span>
+      <span class="rname">${esc(r.req)} <span class="metric">— ${esc(r.metric)}</span>${tags}<span class="rlim">${esc(srcLine(c, r))}</span></span>
+      ${chip(s)}</summary>${notes}</details>`;
+  };
+  $("#reqs").innerHTML = CORE.map(row).join("");
+  $("#systems").innerHTML = SYSTEMS.map(sy => {
+    const v = res ? res.systems[sy.id] : "pend", rec = res && res.recommend === sy.id;
+    const why = sy.id === "double" ? "Needs 200A + ≈9 ft wall" : sy.id === "beta" ? "Select areas only" : "Base configuration";
+    return `<div class="sys${rec ? " rec" : ""}"><span class="kwh">${sy.kwh}<small>kWh</small></span>
+      <span class="nm">${esc(sy.name)}${rec ? "<em>RECOMMENDED</em>" : `<em style="color:var(--dim)">${why}</em>`}</span>${chip(v)}</div>`;
+  }).join("");
+  drawEnvelope(res ? st : null, res && res.layout, res && res.recommend === "double" ? 2 : 1);
+  const util = res && res.facts && res.facts.utility;
+  $("#gateTxt").textContent = util ? util + (res.flags && res.flags.some(f => /CO-OP|MUNI/.test(f)) ? " · confirm Base product availability" : " · Base serves this territory") : "From address record";
+
+  const a = $("#addr");
+  a.textContent = res ? (res.address || "Address not found") : "Enter an address or drop drawings";
+  a.classList.toggle("empty", !res || !res.address);
+  $("#crumb").textContent = res && res.address ? res.address.split(",")[0] : "New review";
+
+  const counts = {yes: 0, no: 0, maybe: 0};
+  if (res) CORE.forEach(r => counts[res.core[r.id].status]++);
+  const big = $("#big"), v = !res ? "pend" : res.verdict;
+  big.className = "big " + v;
+  $("#bigWord").textContent = {pend: "AWAITING", yes: "ELIGIBLE", no: "NOT ELIGIBLE", maybe: "NEEDS REVIEW"}[v];
+  $("#bigSub").textContent = res ? `${counts.yes} YES · ${counts.no} NO · ${counts.maybe} MAYBE` : `0 / ${CORE.length} checked`;
+  const w = n => (n * 100 / CORE.length).toFixed(2);
+  $("#tbar").innerHTML = res ? `<i style="width:${w(counts.yes)}%;background:var(--lime)"></i><i style="width:${w(counts.no)}%;background:var(--orange)"></i><i style="width:${w(counts.maybe)}%;background:var(--amber)"></i>` : "";
+  $("#tleg").innerHTML = `<span class="y">YES ${counts.yes}</span><span class="n">NO ${counts.no}</span><span class="m">MAYBE ${counts.maybe}</span>`;
+
+  const k = (id, val) => { const el = $(id); el.textContent = val ?? "—"; el.classList.toggle("none", val == null); };
+  k("#kAmps", res && res.amps ? res.amps + " A" : null);
+  k("#kRun", res && res.run ? res.run + " FT" : null);
+  const gasNo = res && res.core.C5.status === "yes" && res.core.C5.notes.some(n => /no gas|all-electric/i.test(n[1]));
+  k("#kClr", res && res.clr ? res.clr + " IN" : res && res.clrText ? String(res.clrText).toUpperCase() : null);
+  k("#kSolar", !res ? null : gasNo ? "NONE" : res.core.C5.status === "yes" ? "≥3 FT" : res.core.C5.status === "no" ? "TOO CLOSE" : null);
+
+  const mm = $("#mismatch");
+  mm.hidden = !(res && res.mismatch);
+  if (res && res.mismatch) mm.textContent = `ADDRESS MISMATCH · drawings title block reads ${res.mismatch}`;
+
+  const pr = $("#precord");
+  pr.hidden = !(res && res.facts);
+  if (res && res.facts) {
+    const F = [["Property type","type"],["Year built","yearBuilt"],["Living area","sqft"],["Stories","stories"],["Utility","utility"],["Service","service"],["Gas","gas"],["Flood zone","flood"],["Slope","slope"],["Lot","lot"],["Builder","builder"],["HOA","hoa"],["Parcel","parcel"]];
+    $("#facts").innerHTML = F.filter(([, key]) => res.facts[key] != null && res.facts[key] !== "").map(([l, key]) => `<div><span class="lbl">${l}</span><b>${esc(key === "sqft" ? Number(res.facts[key]).toLocaleString() + " SQ FT" : res.facts[key])}</b></div>`).join("");
+    $("#ev").innerHTML = (res.evidence || []).map(x => `<li>${esc(x)}</li>`).join("");
+    $("#flags").innerHTML = (res.flags || []).map(x => `<span>${esc(x)}</span>`).join("");
+    $("#flags").hidden = !(res.flags && res.flags.length);
+    $("#srclog").innerHTML = (res.sourceLog || []).map(x => `<div><b class="${x.ok ? "ok" : "err"}">${x.ok ? (x.found === false ? "NONE" : "OK") : "ERR"}</b><span>${esc(x.name)}${x.ok ? "" : `<em>${esc(x.error || "")}</em>`}</span></div>`).join("") || "<div><b>—</b><span>No source log on this record</span></div>";
+  }
+
+  const tb = res && res.address ? res.address : "—";
+  $("#tb").innerHTML = `<div>Project</div><div>${esc(tb)}</div><div>Sheets</div><div>${esc(res ? res.sheetCount : 0)}</div><div>Sources</div><div>${esc(res ? [res.sheetCount ? "Drawings" : "", res.facts ? "Public records" : ""].filter(Boolean).join(" + ") || "—" : "—")}</div><div>Status</div><div>${esc($("#bigWord").textContent)}</div>`;
+}
+
+/* ---------- address records + merge ---------- */
+const keyFor = a => {
+  const map = {street:"st", avenue:"ave", road:"rd", drive:"dr", lane:"ln", court:"ct", boulevard:"blvd", place:"pl", west:"w", east:"e", north:"n", south:"s"};
+  return String(a || "").toLowerCase().split(",")[0].replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).map(w => map[w] || w).join("-").slice(0, 120);
+};
+function gateSystems(checks, run) {
+  const base = REQS.filter(r => r.gate !== "none").map(r => ({s: checks[r.id].status, gate: r.gate}));
+  const single = base.some(x => x.s === "no") ? "no" : base.some(x => x.gate === "all" && x.s === "maybe") ? "maybe" : "yes";
+  let dbl = single;
+  if (dbl !== "no") {
+    if (checks.E2.status === "no" || (run && run < 9)) dbl = "no";
+    else if (checks.E2.status === "maybe" || !run) dbl = "maybe";
+  }
+  return {systems: {double: dbl, single, beta: single}, recommend: single === "no" ? null : dbl === "yes" ? "double" : "single"};
+}
+function combine() {
+  if (!dwgRes && !addrRec) return null;
+  const norm = x => x === "yes" ? "yes" : x === "no" ? "no" : "maybe";
+  const checks = {};
+  REQS.forEach(r => {
+    const d = dwgRes && dwgRes.checks[r.id], a = addrRec && addrRec.checks && addrRec.checks[r.id];
+    const ds = d ? norm(d.status) : null, as = a ? norm(a.status) : null;
+    const status = (ds === "no" || as === "no") ? "no" : (ds === "yes" || as === "yes") ? "yes" : "maybe";
+    const src = [];
+    if (ds && ds !== "maybe") src.push("d");
+    if (as && as !== "maybe") src.push("a");
+    const notes = [];
+    if (d && d.note) notes.push(["DWG", d.note]);
+    if (a && a.note) notes.push(["ADDR", String(a.note)]);
+    checks[r.id] = {status, src, notes};
+  });
+  const pick = f => (dwgRes && dwgRes[f]) || (addrRec && addrRec[f]) || null;
+  const solar = dwgRes && dwgRes.solar && dwgRes.solar !== "unknown" ? dwgRes.solar : (addrRec && addrRec.solar) || null;
+  const run = pick("run");
+  let mismatch = null;
+  if (typed && dwgRes && dwgRes.address && keyFor(typed) !== keyFor(dwgRes.address)) mismatch = dwgRes.address;
+  return Object.assign({
+    address: typed || (addrRec && addrRec.address) || (dwgRes && dwgRes.address) || null,
+    checks, amps: pick("amps"), run, clr: pick("clr"), clrText: addrRec && addrRec.clrText, solar,
+    layout: dwgRes && dwgRes.layout ? dwgRes.layout : (addrRec && addrRec.clr ? Object.assign({}, TYPICAL_LAYOUT, {clearanceIn: addrRec.clr}) : null),
+    sheetCount: dwgRes ? dwgRes.sheetCount : 0, facts: addrRec && addrRec.facts, evidence: addrRec && addrRec.evidence, flags: addrRec && addrRec.flags, sourceLog: addrRec && addrRec.sourceLog, mismatch
+  }, (() => { const core = collapse(checks); const st = CORE.map(c => core[c.id].status);
+      const verdict = st.includes("no") ? "no" : st.every(x => x === "yes") ? "yes" : "maybe";
+      const amps = pick("amps");
+      let dbl = verdict;
+      if (dbl !== "no") {
+        if ((amps && amps < 200) || (run && run < 9)) dbl = "no";
+        else if (!(amps === 200 && run >= 9)) dbl = "maybe";
+      }
+      return {core, verdict, systems: {double: dbl, single: verdict, beta: verdict},
+        recommend: verdict === "no" ? null : dbl === "yes" ? "double" : "single"}; })());
+}
+function refresh() { render(combine()); }
+async function lookup(addr) {
+  typed = String(addr || "").trim(); addrRec = null;
+  const st = $("#addrState");
+  const set = (cls, t) => { st.className = "addrstate " + cls; st.textContent = t; };
+  if (!typed) { set("", "No address"); refresh(); return; }
+  const parts = typed.split(",").map(x => x.trim()).filter(Boolean);
+  let stTok = parts.length >= 3 ? parts[parts.length - 1].replace(/\d{5}(-\d{4})?/, "").trim() : "";
+  if (!stTok && parts.length >= 4) stTok = parts[parts.length - 2];
+  if (stTok && !/^(tx|texas)$/i.test(stTok)) { set("warn", "Texas only · this address is outside the service area"); refresh(); return; }
+  if (!db) { set("warn", "Address records unavailable"); refresh(); return; }
+  set("", "Searching records …");
+  const key = keyFor(typed);
+  try {
+    const snap = await db.collection("addresses").doc(key).get();
+    if (snap.exists) {
+      addrRec = snap.data();
+      const c20 = {}; REQS.forEach(r => { const a = addrRec.checks && addrRec.checks[r.id]; c20[r.id] = {status: a && a.status === "yes" ? "yes" : a && a.status === "no" ? "no" : "maybe"}; });
+      const n = Object.values(collapse(c20)).filter(x => x.status === "yes").length;
+      set("ok", `Record found · ${n} of ${CORE.length} YES from public data`);
+    } else {
+      set("q", "No record yet · queued for address screen");
+      db.collection("requests").doc(key).set({address: typed, requestedAt: new Date().toISOString()}).catch(() => {});
+    }
+  } catch (e) { set("warn", "Lookup failed · press Enter to retry"); }
+  refresh();
+}
+$("#addrForm").addEventListener("submit", e => { e.preventDefault(); lookup($("#addrInput").value); });
+
+/* hover a spacing row -> focus its part of the envelope */
+["#reqs"].forEach(sel => {
+  $(sel).addEventListener("mouseover", e => {
+    const r = e.target.closest(".r"); const svg = $("#env"); if (!r) return;
+    const gs = svg.querySelectorAll(`.g[data-r="${r.dataset.r}"]`);
+    svg.querySelectorAll(".g.focus").forEach(x => x.classList.remove("focus"));
+    if (gs.length) { gs.forEach(g => g.classList.add("focus")); svg.classList.add("dimmed"); } else svg.classList.remove("dimmed");
+  });
+  $(sel).addEventListener("mouseleave", () => { const svg = $("#env"); svg.classList.remove("dimmed"); svg.querySelectorAll(".g.focus").forEach(x => x.classList.remove("focus")); });
+});
+
+/* ---------- decision ---------- */
+function decide(raw, sheetCount) {
+  const checks = {};
+  REQS.forEach(r => {
+    const c = raw.checks && raw.checks[r.id];
+    const s = c && c.status === "yes" ? "yes" : c && c.status === "no" ? "no" : "maybe";
+    checks[r.id] = {status: s, note: c && c.note ? String(c.note) : ""};
+  });
+  const amps = Number(raw.main_breaker_amps) || null;
+  const austin = /\baustin\b/i.test(raw.address || "");
+  const set = (id, s, why) => { const o = checks[id]; checks[id] = {status: s, note: !o || !o.note ? why : o.status === s ? o.note : `${o.note} · Rule: ${why}`}; };
+  if (amps) {
+    const lo = austin ? 150 : 100;
+    set("E1", amps >= lo && amps <= 200 ? "yes" : "no", `${amps}A main breaker${austin ? " · Austin requires 150–200A" : ""}.`);
+    set("E2", amps === 200 ? "yes" : "no", `${amps}A main breaker.`);
+    if (raw.solar === "no") set("E3", "yes", "No solar on the drawings.");
+    else if (raw.solar === "yes") set("E3", amps === 200 ? "yes" : "no", `Solar with a ${amps}A main breaker.`);
+  }
+  const run = Number(raw.wall_run_ft) || null;
+  if (run) set("S1", run >= 6 ? "yes" : "no", `${run} ft of clear wall from the meter.`);
+  const clr = Number(raw.side_clearance_in) || null;
+  if (clr) set("S7", clr >= 56 ? "yes" : "no", `${clr} in from the wall to the nearest obstruction.`);
+  const base = REQS.filter(r => r.gate !== "none").map(r => ({s: checks[r.id].status, gate: r.gate}));
+  const single = base.some(x => x.s === "no") ? "no" : base.some(x => x.gate === "all" && x.s === "maybe") ? "maybe" : "yes";
+  let dbl = single;
+  if (dbl !== "no") {
+    if (checks.E2.status === "no" || (run && run < 9)) dbl = "no";
+    else if (checks.E2.status === "maybe" || !run) dbl = "maybe";
+  }
+  return {address: raw.address, checks, amps, run, clr, solar: raw.solar, sheetCount, layout: layoutFrom(raw),
+    systems: {double: dbl, single, beta: single}, recommend: single === "no" ? null : dbl === "yes" ? "double" : "single"};
+}
+
+/* ---------- drawings to images ---------- */
+function toBlob(c) { return new Promise((ok, bad) => c.toBlob(b => b ? ok(b) : bad(new Error("encode")), "image/jpeg", 0.86)); }
+function crop(src, x, y, w, h) {
+  const c = document.createElement("canvas"); c.width = Math.round(w); c.height = Math.round(h);
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(src, x, y, w, h, 0, 0, c.width, c.height); return c;
+}
+async function sheets(file, budget) {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    if (!window.pdfjsLib) throw new Error("PDF reader didn't load. Drop PNG or JPG exports instead.");
+    const pdf = await pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false}).promise;
+    const out = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, budget); i++) {
+      const page = await pdf.getPage(i), v1 = page.getViewport({scale: 1});
+      const vp = page.getViewport({scale: Math.min(4, 2800 / Math.max(v1.width, v1.height))});
+      const c = document.createElement("canvas"); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+      await page.render({canvasContext: g, viewport: vp}).promise;
+      out.push({label: `${file.name} p${i}`, c});
+    }
+    return out;
+  }
+  const bmp = await createImageBitmap(file), k = Math.min(1, 2800 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return [{label: file.name, c}];
+}
+function showSheet(canvas, label, n) {
+  const stage = $("#stage");
+  stage.querySelectorAll("img").forEach(x => x.remove());
+  const img = new Image(); img.alt = "Dropped drawing sheet"; img.src = canvas.toDataURL("image/jpeg", 0.8);
+  stage.insertBefore(img, $("#cta"));
+  $("#plan").style.display = "none"; $("#cta").hidden = true;
+  $("#sheetTag").textContent = `${label} · ${n} sheet${n === 1 ? "" : "s"}`;
+}
+async function images(files) {
+  const max = Math.max(1, Math.min(imgMax, 20));
+  let src = [];
+  for (const f of files) { if (src.length >= max) break; src = src.concat(await sheets(f, max - src.length)); }
+  if (src.length) showSheet(src[0].c, src[0].label, src.length);
+  $("#sheets").textContent = String(src.length).padStart(2, "0");
+  const blobs = [], names = [];
+  for (const s of src) { blobs.push(await toBlob(s.c)); names.push(`Image ${blobs.length}: full sheet ${s.label}`); }
+  let left = max - blobs.length;
+  for (const s of src) {
+    if (left < 4) break;
+    if (Math.max(s.c.width, s.c.height) < 1500) continue;
+    const W = s.c.width, H = s.c.height, w = W * .56, h = H * .56;
+    for (const [n, x, y] of [["top-left",0,0],["top-right",W-w,0],["bottom-left",0,H-h],["bottom-right",W-w,H-h]]) {
+      blobs.push(await toBlob(crop(s.c, x, y, w, h))); names.push(`Image ${blobs.length}: zoomed ${n} of ${s.label}`);
+    }
+    left -= 4;
+  }
+  return {blobs, names, count: src.length};
+}
+
+/* ---------- prompt ---------- */
+function prompt(names) {
+  return `You are reading architectural drawings of a single-family home to decide whether a Base Power home battery can be installed.
+The system is exterior: an automatic transfer switch (~13 in wide) on the wall beside the electric meter, then one or two ground batteries (3 × 3 ft footprint, ~36 in tall) along the same wall within 20 ft of the meter.
+
+Images:
+${names.join("\n")}
+Zoomed images are crops of the sheet named; use them to read small text, dimensions, symbols and schedules.
+
+First find the property address in the title block (street, city, state). Then locate the electric meter (M, EM, METER, SES), main panel (MP, MDP, panel schedule, riser, load calc), gas meter (GM), windows and doors on the meter wall, fences, property lines, setbacks and grades.
+
+Layout: measure along the meter wall. from_meter_ft is the distance from the electric meter to the near edge of each window, door or the gas meter, positive toward the side with the most clear wall (where batteries would go), negative on the other side. Only include what the drawings show.
+
+For each requirement answer "yes" (drawings show it is met), "no" (drawings show it is not met) or "inconclusive" (drawings don't show enough). Do not guess. note: what you read and where, one plain sentence, max 20 words.
+
+Requirements:
+${REQS.map(r => `${r.id}: ${r.rule}`).join("\n")}
+
+Reply with only JSON:
+{"address": "full address from the title block, or null",
+ "main_breaker_amps": number or null,
+ "solar": "yes" | "no" | "unknown",
+ "wall_run_ft": number or null,
+ "side_clearance_in": number or null,
+ "layout": {"sheets": "sheet ids used, e.g. A1.0 / A3.0",
+   "meter_wall_length_ft": number or null,
+   "clear_wall_from_meter_ft": number or null,
+   "windows": [{"from_meter_ft": number, "width_ft": number, "floor": 1 or 2}],
+   "doors": [{"from_meter_ft": number, "width_ft": number, "floor": 1}],
+   "gas_service": "yes" | "no" | "unknown",
+   "gas_meter_wall": "same" | "other" | "unknown",
+   "gas_meter_from_meter_ft": number or null,
+   "side_clearance_in": number or null,
+   "fence": "yes" | "no" | "unknown",
+   "meter_height_ft": number or null},
+ "checks": {${REQS.map(r => `"${r.id}": {"status": "yes"|"no"|"inconclusive", "note": "..."}`).join(", ")}}}`;
+}
+
+/* ---------- run ---------- */
+function status(t, err) { const el = $("#status"); el.textContent = t; el.classList.toggle("err", !!err); }
+function engine(state) {
+  $("#led").className = "led " + (state === "ready" ? "on" : state === "busy" ? "busy" : "");
+  $("#engine").textContent = {ready: "Ready", busy: "Reading", off: "Unavailable", wait: "Connecting"}[state];
+}
+const ERR = {
+  not_granted: "ACCESS NOT ALLOWED · allow Claude for this page, then drop again.",
+  images_unavailable: "IMAGES UNAVAILABLE · open this page on claude.ai in a browser.",
+  image_rejected: "SHEET UNREADABLE · export it as PNG or JPG.",
+  rate_limited: "RATE LIMITED · wait a minute and drop again.",
+  invalid_json: "RESULT UNREADABLE · drop the drawings again.",
+  refused: "NOT CHECKED · make sure the files are drawings of a home.",
+};
+async function run(fileList) {
+  if (running) return;
+  const all = Array.from(fileList);
+  const files = all.filter(f => /pdf|png|jpe?g|webp/i.test(f.type) || /\.(pdf|png|jpe?g|webp)$/i.test(f.name));
+  if (!files.length) {
+    status(all.some(f => /\.(dwg|dxf)$/i.test(f.name)) ? "CAD FILE · plot the sheets to PDF, then drop the PDF." : "UNSUPPORTED · drop PDF, PNG, JPG or WebP drawings.", true);
+    return;
+  }
+  const presentation = files.some(f => SAMPLE_RE.test(f.name));
+  if (!sample && !presentation) { status("ENGINE UNAVAILABLE · open this page in Claude to read drawings.", true); return; }
+  running = true; dwgRes = null; refresh();
+  const stage = $("#stage");
+  try {
+    engine("busy");
+    status("RENDERING SHEETS …");
+    const {blobs, names, count} = await images(files);
+    stage.classList.add("reading");
+    status(`READING ${count} SHEET${count === 1 ? "" : "S"} · ${blobs.length} VIEWS · 20 REQUIREMENTS …`);
+    if (presentation) { await playback(count, files.map(f => f.name)); stage.classList.remove("reading"); engine(sample ? "ready" : "off"); running = false; return; }
+    const raw = await sample.json(prompt(names), {images: blobs, modelTier: "complex"});
+    if (!raw || !raw.checks) throw {code: "invalid_json"};
+    dwgRes = decide(raw, count);
+    refresh();
+    status(`COMPLETE · ${new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})} · drop new drawings to run again`);
+  } catch (e) {
+    status((e && ERR[e.code]) || (e && e.message && !e.code ? e.message : "ERROR · drop the drawings again."), true);
+  }
+  stage.classList.remove("reading");
+  engine(sample ? "ready" : "off");
+  running = false;
+}
+
+/* presentation mode: replays the recorded reading of the sample plan set, one requirement at a time */
+async function playback(count, fileNames) {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const rec = (fileNames || []).some(n => /8014-Chateau-St-Houston-ARCH/i.test(n)) ? CHATEAU : RECORDED;
+  const full = decide(rec, count);
+  const partial = JSON.parse(JSON.stringify(full));
+  REQS.forEach(r => { partial.checks[r.id] = {status: "maybe", note: ""}; });
+  partial.amps = null; partial.run = null; partial.clr = null; partial.solar = null;
+  await wait(1400);
+  for (const c of CORE) {
+    status(`VERIFYING ${c.id} · ${c.req.toUpperCase()} …`);
+    await wait(650);
+    c.from.forEach(id => { partial.checks[id] = full.checks[id]; });
+    if (c.id === "C1") { partial.amps = full.amps; partial.solar = full.solar; }
+    if (c.id === "C3") partial.run = full.run;
+    if (c.id === "C4") partial.clr = full.clr;
+    dwgRes = partial; refresh();
+  }
+  dwgRes = full; refresh();
+  status("COMPLETE · PRESENTATION MODE · recorded analysis of the illustrative plan set");
+}
+
+const stage = $("#stage");
+$("#file").addEventListener("change", e => { if (e.target.files.length) run(e.target.files); e.target.value = ""; });
+["dragenter","dragover"].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.add("over"); }));
+["dragleave","drop"].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.remove("over"); }));
+stage.addEventListener("drop", e => { if (e.dataTransfer.files.length) run(e.dataTransfer.files); });
+
+drawPlan(); render(null); engine("wait");
+(async () => {
+  if (!window.claude || !window.claude.use) { engine("off"); return; }
+  const [smp, store] = await Promise.all([claude.use("sample"), claude.use("db")]);
+  sample = smp; db = store;
+  if (!typed && !$("#addrInput").value) { $("#addrInput").value = DEFAULT_ADDRESS; }
+  if ($("#addrInput").value && !typed) lookup($("#addrInput").value); else if (typed) lookup(typed);
+  if (!sample) { engine("off"); return; }
+  const lim = await sample.limits().catch(() => null);
+  if (lim && lim.images) { imgMax = lim.images.maxCount; engine("ready"); } else { sample = null; engine("off"); }
+})();
+})();
+</script>

@@ -1,0 +1,196 @@
+{
+  "address": "8014 Chateau St, Houston, Texas, 77028",
+  "key": "8014-chateau-st",
+  "state": "TX",
+  "amps": null,
+  "solar": null,
+  "clr": 28,
+  "clrText": null,
+  "facts": {
+    "yearBuilt": 1940,
+    "sqft": 880,
+    "stories": 1,
+    "type": "Single-family (HCAD A1)",
+    "builder": null,
+    "hoa": null,
+    "utility": "CenterPoint Energy Houston Electric, LLC (IOU)",
+    "service": "Unknown",
+    "gas": "Likely (CenterPoint gas area; 1940 home)",
+    "flood": "Zone X",
+    "slope": "≈2.5%",
+    "parcel": "HARRIS CAD 0300170170004 · Null",
+    "lot": null
+  },
+  "flags": [],
+  "evidence": [
+    "HARRIS CAD 0300170170004: Null.",
+    "HCAD account 0300170170004: A1 single-family, built 1940; lot ≈40' x 100' (3,980 sq ft).",
+    "OpenStreetMap footprint ≈880 sq ft house + detached rear accessory building.",
+    "Street View (Jan 2020): 1-story frame bungalow, driveway on east side, utility pole on west side, chain-link front fence.",
+    "East side yard ≈9'-6\" (driveway side); west side yard ≈1'-10\" (too tight for a battery).",
+    "Electric utility: CenterPoint Energy Houston Electric, LLC (IOU).",
+    "FEMA flood zone X (AREA OF MINIMAL FLOOD HAZARD).",
+    "Grade ≈2.5% across the lot; elevation ≈43 ft.",
+    "Side clearance 2.4–16.9 ft wall-to-lot-line.",
+    "Street View: 1 image(s) saved, imagery dated 2020-01."
+  ],
+  "streetView": {
+    "status": "OK",
+    "newest": "2020-01",
+    "images": [
+      {
+        "file": "sv_1_h184.jpg",
+        "date": "2020-01",
+        "heading": 184,
+        "distM": 24
+      }
+    ]
+  },
+  "checks": {
+    "E1": {
+      "status": "maybe",
+      "note": "Built 1940, no service-upgrade permit found: may be under 150A."
+    },
+    "E2": {
+      "status": "maybe",
+      "note": "Built 1940: 200A unlikely without an upgrade."
+    },
+    "E3": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E4": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E7": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E8": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E9": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E10": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S1": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S2": {
+      "status": "yes",
+      "note": "Yard space around the house exceeds a 3×3 ft pad."
+    },
+    "S3": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S4": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S7": {
+      "status": "maybe",
+      "note": "Narrowest side ≈28 in; check which wall has the meter."
+    },
+    "S8": {
+      "status": "yes",
+      "note": "≈2.5% grade across the lot (USGS 3DEP)."
+    },
+    "S9": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S10": {
+      "status": "maybe",
+      "note": "Not in public data."
+    }
+  },
+  "yesCount": 2,
+  "sourceLog": [
+    {
+      "name": "Geocoder · Esri World",
+      "url": "geocode.arcgis.com/.../findAddressCandidates",
+      "ok": true,
+      "ms": 422,
+      "found": true
+    },
+    {
+      "name": "Parcel · TxGIO StratMap statewide",
+      "url": "feature.geographic.texas.gov/.../stratmap_land_parcels_48_most_recent/MapServer/identify",
+      "ok": true,
+      "ms": 282,
+      "found": true
+    },
+    {
+      "name": "Utility · PUCT service areas (IOU, co-op, muni)",
+      "url": "https://services6.arcgis.com/N6Lzvtb46cpxThhu/arcgis/rest/services/{IOU,COOP_DIST,MUNI}/FeatureServer",
+      "ok": true,
+      "ms": 713,
+      "found": true
+    },
+    {
+      "name": "Flood · FEMA NFHL",
+      "url": "hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+      "ok": true,
+      "ms": 226,
+      "found": true
+    },
+    {
+      "name": "Footprint · OpenStreetMap Overpass",
+      "url": "overpass-api.de/api/interpreter",
+      "ok": true,
+      "ms": 13375,
+      "found": true
+    },
+    {
+      "name": "Appraisal · HARRIS CAD current roll",
+      "url": "not wired yet (bulk export or portal)",
+      "ok": false,
+      "error": "Current-roll values not automated for this county yet"
+    },
+    {
+      "name": "Slope · USGS 3DEP (EPQS)",
+      "url": "epqs.nationalmap.gov/v1/json",
+      "ok": true,
+      "ms": 15580,
+      "found": true
+    },
+    {
+      "name": "Street View · Google (metadata + up to 3 images)",
+      "url": "maps.googleapis.com/maps/api/streetview",
+      "ok": true,
+      "ms": 757,
+      "found": true
+    },
+    {
+      "name": "Permits · Houston / HARRIS",
+      "url": "no public query API",
+      "ok": false,
+      "error": "No machine-readable permit API for this jurisdiction"
+    }
+  ],
+  "updatedAt": "2026-09-27"
+}

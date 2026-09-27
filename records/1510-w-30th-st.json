@@ -1,0 +1,209 @@
+{
+  "address": "1510 W 30th St, Austin, Texas, 78703",
+  "key": "1510-w-30th-st",
+  "state": "TX",
+  "amps": 200,
+  "solar": "no",
+  "clr": 71,
+  "clrText": null,
+  "facts": {
+    "yearBuilt": 1937,
+    "sqft": 2145,
+    "stories": 1,
+    "type": "Single-family",
+    "builder": null,
+    "hoa": null,
+    "utility": "Austin Energy (Municipal)",
+    "service": "Overhead",
+    "gas": "Unknown",
+    "flood": "Zone X",
+    "slope": "≈4%",
+    "parcel": "TRAVIS CAD 0118011117 ·  LOT 65 *& W 1 FT OF LOT 64 *& E 5 FT OF LOT 66 BRYKER WOODS",
+    "lot": null
+  },
+  "flags": [],
+  "evidence": [
+    "TRAVIS CAD 0118011117:  LOT 65 *& W 1 FT OF LOT 64 *& E 5 FT OF LOT 66 BRYKER WOODS.",
+    "TCAD property 118172: 1-family dwelling, built 1937, 2,145 sq ft living area, 1 story (TCAD public portal).",
+    "City of Austin 2017 footprint vs TCAD parcel: narrowest side ≈5.9 ft NW, ≈9.5 ft SE (±2–3 ft).",
+    "Electric utility: Austin Energy (Municipal).",
+    "FEMA flood zone X (AREA OF MINIMAL FLOOD HAZARD).",
+    "Grade ≈4% across the lot; elevation ≈608 ft.",
+    "15 permit(s) found; service 200A.",
+    "Side clearance 5.9–29.9 ft wall-to-lot-line.",
+    "Street View: 2 image(s) saved, imagery dated 2024-02."
+  ],
+  "streetView": {
+    "status": "OK",
+    "newest": "2024-02",
+    "images": [
+      {
+        "file": "sv_1_h20.jpg",
+        "date": "2024-02",
+        "heading": 20,
+        "distM": 23
+      },
+      {
+        "file": "sv_2_h58.jpg",
+        "date": "2024-02",
+        "heading": 58,
+        "distM": 25
+      }
+    ]
+  },
+  "checks": {
+    "E1": {
+      "status": "yes",
+      "note": "200A per permit (Austin 150–200A)."
+    },
+    "E2": {
+      "status": "yes",
+      "note": "200A service per permit."
+    },
+    "E3": {
+      "status": "yes",
+      "note": "No solar permits on record."
+    },
+    "E4": {
+      "status": "yes",
+      "note": "Single service ≤200A per permit."
+    },
+    "E5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E7": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E8": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E9": {
+      "status": "yes",
+      "note": "Meter base replaced under a finaled permit."
+    },
+    "E10": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S1": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S2": {
+      "status": "yes",
+      "note": "Yard space around the house exceeds a 3×3 ft pad."
+    },
+    "S3": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S4": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S7": {
+      "status": "yes",
+      "note": "Narrowest wall-to-lot-line ≈71 in (needs ≥56 in)."
+    },
+    "S8": {
+      "status": "yes",
+      "note": "≈4% grade across the lot (USGS 3DEP)."
+    },
+    "S9": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S10": {
+      "status": "yes",
+      "note": "Service overhead to exterior meter per permit."
+    }
+  },
+  "yesCount": 9,
+  "sourceLog": [
+    {
+      "name": "Geocoder · Esri World",
+      "url": "geocode.arcgis.com/.../findAddressCandidates",
+      "ok": true,
+      "ms": 358,
+      "found": true
+    },
+    {
+      "name": "Parcel · TxGIO StratMap statewide",
+      "url": "feature.geographic.texas.gov/.../stratmap_land_parcels_48_most_recent/MapServer/identify",
+      "ok": true,
+      "ms": 308,
+      "found": true
+    },
+    {
+      "name": "Utility · PUCT service areas (IOU, co-op, muni)",
+      "url": "https://services6.arcgis.com/N6Lzvtb46cpxThhu/arcgis/rest/services/{IOU,COOP_DIST,MUNI}/FeatureServer",
+      "ok": true,
+      "ms": 1120,
+      "found": true
+    },
+    {
+      "name": "Flood · FEMA NFHL",
+      "url": "hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+      "ok": true,
+      "ms": 201,
+      "found": true
+    },
+    {
+      "name": "Footprint · OpenStreetMap Overpass",
+      "url": "overpass-api.de/api/interpreter",
+      "ok": false,
+      "ms": 34806,
+      "error": "Overpass unavailable"
+    },
+    {
+      "name": "Appraisal · TRAVIS CAD current roll",
+      "url": "not wired yet (bulk export or portal)",
+      "ok": false,
+      "error": "Current-roll values not automated for this county yet"
+    },
+    {
+      "name": "Footprint · City of Austin building footprints",
+      "url": "services.arcgis.com/0L95CJ0VTaxqcmED/.../building_footprints_2017",
+      "ok": true,
+      "ms": 401,
+      "found": true
+    },
+    {
+      "name": "Slope · USGS 3DEP (EPQS)",
+      "url": "epqs.nationalmap.gov/v1/json",
+      "ok": true,
+      "ms": 32908,
+      "found": true
+    },
+    {
+      "name": "Street View · Google (metadata + up to 3 images)",
+      "url": "maps.googleapis.com/maps/api/streetview",
+      "ok": true,
+      "ms": 1229,
+      "found": true
+    },
+    {
+      "name": "Permits · City of Austin (Socrata)",
+      "url": "data.austintexas.gov/resource/3syk-w9eu.json",
+      "ok": true,
+      "ms": 1289,
+      "found": true
+    }
+  ],
+  "updatedAt": "2026-09-26"
+}

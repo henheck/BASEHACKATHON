@@ -1,0 +1,14 @@
+{
+  "propertyType": "Single-family (HCAD A1)",
+  "units": 1,
+  "yearBuilt": 1940,
+  "sqft": 880,
+  "stories": 1,
+  "gas": "Likely (CenterPoint gas area; 1940 home)",
+  "evidence": [
+    "HCAD account 0300170170004: A1 single-family, built 1940; lot ≈40' x 100' (3,980 sq ft).",
+    "OpenStreetMap footprint ≈880 sq ft house + detached rear accessory building.",
+    "Street View (Jan 2020): 1-story frame bungalow, driveway on east side, utility pole on west side, chain-link front fence.",
+    "East side yard ≈9'-6\" (driveway side); west side yard ≈1'-10\" (too tight for a battery)."
+  ]
+}

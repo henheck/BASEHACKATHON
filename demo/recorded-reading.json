@@ -1,0 +1,29 @@
+{
+  "address": "104 Gunner Rd, Buda, TX 78610",
+  "main_breaker_amps": 200,
+  "solar": "no",
+  "wall_run_ft": 9,
+  "side_clearance_in": 144,
+  "checks": {
+    "E1": {"status": "yes", "note": "E1.0 riser: 200A main breaker per unit, 120/240V."},
+    "E2": {"status": "yes", "note": "E1.0: 200A service and 200A bus per unit."},
+    "E3": {"status": "yes", "note": "A1.0 note 7 and E1.0 riser: no photovoltaic system."},
+    "E4": {"status": "yes", "note": "E1.0: one main panel per dwelling unit, no subpanels."},
+    "E5": {"status": "yes", "note": "E1.0 partial plan: MP-A back-to-back with exterior meter EM-A on garage wall."},
+    "E6": {"status": "yes", "note": "E1.0: panel on garage wall, noted not a closet."},
+    "E7": {"status": "yes", "note": "A3.0 and E1.0 schedule: meter at 5'-0\" A.F.F. to center."},
+    "E8": {"status": "yes", "note": "E1.0: 36\" x 30\" clear working space shown at meter and panel."},
+    "E9": {"status": "yes", "note": "New 2025 CL200 meter socket and service lateral per E1.0."},
+    "E10": {"status": "yes", "note": "E1.0 note 2: 30\" clear wall reserved beside meter for transfer switch."},
+    "S1": {"status": "yes", "note": "A1.0 and A3.0: 9'-0\" clear wall from meter, no windows or doors."},
+    "S2": {"status": "yes", "note": "A1.0: two 3'x3' battery pads drawn per unit."},
+    "S3": {"status": "yes", "note": "A1.0 note 3: pads within 20'-0\" of meter, no trenching."},
+    "S4": {"status": "yes", "note": "A1.0 note 3: pads within 1'-0\" of wall."},
+    "S5": {"status": "yes", "note": "A1.0 note 1: all-electric units, no gas meter on site."},
+    "S6": {"status": "yes", "note": "A3.0: battery zone wall has no windows; 2nd-floor windows >10' away."},
+    "S7": {"status": "yes", "note": "A1.0: 12'-0\" side yard wall to fence (needs ≥56\")."},
+    "S8": {"status": "yes", "note": "A1.0 note 5 and A3.0: pad area graded level ±1%; FEMA Zone X."},
+    "S9": {"status": "yes", "note": "A1.0 note 4: battery zone kept clear of landscaping, A/C and fence posts."},
+    "S10": {"status": "yes", "note": "A1.0 note 2: meters on exterior garage side walls."}
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "address": "104 Gunner Rd, Buda, Texas, 78610",
+  "key": "104-gunner-rd",
+  "state": "TX",
+  "amps": null,
+  "solar": null,
+  "clr": null,
+  "clrText": null,
+  "facts": {
+    "yearBuilt": 2025,
+    "sqft": 3770,
+    "stories": 2,
+    "type": "Duplex (2 units)",
+    "builder": "TwoTen Communities · Duplex plan",
+    "hoa": "Emma Park HOA (mandatory)",
+    "utility": "Pedernales Electric Cooperative, Inc. (Co-op)",
+    "service": "Unknown",
+    "gas": "Unknown (CAD heat/AC field blank)",
+    "flood": "Zone X",
+    "slope": "≈7.4%",
+    "parcel": "HAYS CAD 205025 · EMMA PARK SUBDIVISION PHASE 2, BLOCK D, Lot 20, ACRES 0.475",
+    "lot": "0.475 ac"
+  },
+  "flags": [
+    "MULTI-UNIT · Duplex (2 units): separate meter per unit",
+    "HOA · Emma Park HOA (mandatory): check exterior-equipment rules",
+    "CO-OP / MUNI UTILITY · no retail choice: confirm Base product availability"
+  ],
+  "evidence": [
+    "HAYS CAD 205025 (current roll): improvements $580,620, land $83,540, deed 11/24/2025.",
+    "HAYS CAD 205025: EMMA PARK SUBDIVISION PHASE 2, BLOCK D, Lot 20, ACRES 0.475.",
+    "Hays CAD 2026 export (9-17-2026): 2 improvement records, $290,310 each; built 2025; each unit 1,339 sq ft 1st floor + 546 sq ft 2nd floor = 1,885 sq ft; 436 sq ft attached garage per unit.",
+    "Duplex by TwoTen Communities (builder site, listings); at least one unit rented.",
+    "Unincorporated Hays County (Kyle ETJ); county permits sit behind a login (MyGovernmentOnline).",
+    "Mandatory Emma Park HOA (~$900/yr) may restrict exterior equipment placement.",
+    "No Street View imagery yet (new subdivision); latest Esri aerial predates construction.",
+    "Electric utility: Pedernales Electric Cooperative, Inc. (Co-op).",
+    "FEMA flood zone X (AREA OF MINIMAL FLOOD HAZARD).",
+    "Grade ≈7.4% across the lot; elevation ≈729 ft.",
+    "Street View: No Street View panorama within 50 m."
+  ],
+  "streetView": {
+    "status": "NO_IMAGERY",
+    "newest": null,
+    "images": []
+  },
+  "checks": {
+    "E1": {
+      "status": "maybe",
+      "note": "Built 2025: 150–200A typical for this era; confirm panel label."
+    },
+    "E2": {
+      "status": "maybe",
+      "note": "Built 2025: 200A likely but not confirmed."
+    },
+    "E3": {
+      "status": "yes",
+      "note": "No solar in listings or appraisal records."
+    },
+    "E4": {
+      "status": "maybe",
+      "note": "Duplex (2 units): one meter and panel per unit; screen each unit as its own install."
+    },
+    "E5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E7": {
+      "status": "yes",
+      "note": "Built 2025: meter set to current utility standard (4–6 ft). Inferred."
+    },
+    "E8": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "E9": {
+      "status": "yes",
+      "note": "Built 2025: meter and conduit are new. Inferred."
+    },
+    "E10": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S1": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S2": {
+      "status": "yes",
+      "note": "≈12% lot coverage on 0.475 ac: room for 3×3 ft pads."
+    },
+    "S3": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S4": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S5": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S6": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S7": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S8": {
+      "status": "yes",
+      "note": "≈7.4% grade across the lot (USGS 3DEP)."
+    },
+    "S9": {
+      "status": "maybe",
+      "note": "Not in public data."
+    },
+    "S10": {
+      "status": "yes",
+      "note": "Built 2025: Texas residential meters are exterior. Inferred."
+    }
+  },
+  "yesCount": 6,
+  "sourceLog": [
+    {
+      "name": "Geocoder · Esri World",
+      "url": "geocode.arcgis.com/.../findAddressCandidates",
+      "ok": true,
+      "ms": 290,
+      "found": true
+    },
+    {
+      "name": "Parcel · TxGIO StratMap statewide",
+      "url": "feature.geographic.texas.gov/.../stratmap_land_parcels_48_most_recent/MapServer/identify",
+      "ok": true,
+      "ms": 191,
+      "found": true
+    },
+    {
+      "name": "Utility · PUCT service areas (IOU, co-op, muni)",
+      "url": "https://services6.arcgis.com/N6Lzvtb46cpxThhu/arcgis/rest/services/{IOU,COOP_DIST,MUNI}/FeatureServer",
+      "ok": true,
+      "ms": 648,
+      "found": true
+    },
+    {
+      "name": "Flood · FEMA NFHL",
+      "url": "hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+      "ok": true,
+      "ms": 492,
+      "found": true
+    },
+    {
+      "name": "Footprint · OpenStreetMap Overpass",
+      "url": "overpass-api.de/api/interpreter",
+      "ok": false,
+      "ms": 44174,
+      "error": "Overpass unavailable"
+    },
+    {
+      "name": "Appraisal · Hays CAD map service (current roll)",
+      "url": "utility.arcgis.com/.../HaysCADWebService1/FeatureServer/0",
+      "ok": true,
+      "ms": 275,
+      "found": true
+    },
+    {
+      "name": "Slope · USGS 3DEP (EPQS)",
+      "url": "epqs.nationalmap.gov/v1/json",
+      "ok": true,
+      "ms": 10612,
+      "found": true
+    },
+    {
+      "name": "Street View · Google (metadata + up to 3 images)",
+      "url": "maps.googleapis.com/maps/api/streetview",
+      "ok": true,
+      "ms": 470,
+      "found": true
+    },
+    {
+      "name": "Permits · Buda / HAYS",
+      "url": "no public query API",
+      "ok": false,
+      "error": "No machine-readable permit API for this jurisdiction"
+    }
+  ],
+  "updatedAt": "2026-09-26"
+}

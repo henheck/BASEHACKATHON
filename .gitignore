@@ -1,0 +1,16 @@
+# Secrets — never commit
+.env
+**/.env
+google-usage.json
+
+# Large third-party bulk downloads (county appraisal district exports, tens of MB,
+# redistribution of their raw data isn't ours to grant — regenerate via bulk/ scripts instead)
+bulk/
+
+# Google Street View imagery — real photos of real addresses, subject to Google's
+# ToS on redistribution; regenerate locally via streetview.mjs (small per-address cost)
+records/*_streetview/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db

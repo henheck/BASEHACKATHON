@@ -1,0 +1,18 @@
+{
+  "propertyType": "Duplex (2 units)",
+  "units": 2,
+  "yearBuilt": 2025,
+  "sqft": 3770,
+  "stories": 2,
+  "builder": "TwoTen Communities · Duplex plan",
+  "hoa": "Emma Park HOA (mandatory)",
+  "gas": "Unknown (CAD heat/AC field blank)",
+  "solar": "no",
+  "evidence": [
+    "Hays CAD 2026 export (9-17-2026): 2 improvement records, $290,310 each; built 2025; each unit 1,339 sq ft 1st floor + 546 sq ft 2nd floor = 1,885 sq ft; 436 sq ft attached garage per unit.",
+    "Duplex by TwoTen Communities (builder site, listings); at least one unit rented.",
+    "Unincorporated Hays County (Kyle ETJ); county permits sit behind a login (MyGovernmentOnline).",
+    "Mandatory Emma Park HOA (~$900/yr) may restrict exterior equipment placement.",
+    "No Street View imagery yet (new subdivision); latest Esri aerial predates construction."
+  ]
+}
