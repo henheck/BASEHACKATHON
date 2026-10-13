@@ -4,7 +4,7 @@
 // requirements (yes / no / maybe) and writes records/<key>.json in the checker's record format.
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { captureStreetView } from "./streetview.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +35,7 @@ async function source(name, url, fn) {
     return null;
   }
 }
-const keyFor = a => {
+export const keyFor = a => {
   const map = { street: "st", avenue: "ave", road: "rd", drive: "dr", lane: "ln", court: "ct", boulevard: "blvd", place: "pl", west: "w", east: "e", north: "n", south: "s" };
   return String(a).toLowerCase().split(",")[0].replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).map(w => map[w] || w).join("-").slice(0, 120);
 };
@@ -51,7 +51,7 @@ const segDist = (p, a, b) => {
 const polyDist = (p, ring) => Math.min(...ring.slice(1).map((b, i) => segDist(p, ring[i], b)));
 const inside = (pt, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
 
-async function main(address) {
+async function main(address, facts = {}) {
   // 1. Geocode (Esri World rooftop-level, Census as fallback)
   let geo = await source("Geocoder · Esri World", "geocode.arcgis.com/.../findAddressCandidates", async () => {
     const r = await getJSON(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?SingleLine=${encodeURIComponent(address)}&f=json&outFields=Addr_type,Subregion,City,Region,RegionAbbr&maxLocations=1`);
@@ -168,7 +168,7 @@ async function main(address) {
     (await getJSON(`https://www.dallasopendata.com/resource/e7gq-4sah.json?$q=${encodeURIComponent(num + " " + street)}&$limit=100`)).map(p => ({ id: p.permit_number, type: p.permit_type, desc: p.work_description, issued: (p.issue_date || "").slice(0, 10) })));
   else log.push({ name: `Permits · ${geo.city || "city"} / ${parcel ? parcel.county : geo.county}`, url: "no public query API", ok: false, error: "No machine-readable permit API for this jurisdiction" });
 
-  return decide({ address, geo, parcel, cad, utility, flood, footprint: fp, slope, permits, sv, facts: EXTRA });
+  return decide({ address, geo, parcel, cad, utility, flood, footprint: fp, slope, permits, sv, facts });
 }
 
 function decide(d) {
@@ -275,15 +275,36 @@ function decide(d) {
   };
 }
 
-const argv = process.argv.slice(2);
-const fi = argv.indexOf("--facts");
-const EXTRA = fi >= 0 ? JSON.parse(fs.readFileSync(argv[fi + 1], "utf8")) : {};
-if (fi >= 0) argv.splice(fi, 2);
-const address = argv.join(" ");
-if (!address) { console.error('Usage: node tx-screen.mjs "<address>"'); process.exit(1); }
-main(address).then(rec => {
-  const dir = path.join(HERE, "records"); fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, rec.key + ".json");
-  fs.writeFileSync(file, JSON.stringify(rec, null, 2));
-  console.log(JSON.stringify({ file, address: rec.address, yes: rec.yesCount, flags: rec.flags, sources: rec.sourceLog.map(s => `${s.ok ? "OK " : "ERR"} ${s.name}${s.ok ? (s.found ? "" : " (no match)") : " · " + s.error}`) }, null, 2));
-}).catch(e => { console.error("FAILED:", e.message); console.error(JSON.stringify(log, null, 2)); process.exit(1); });
+export function loadFacts(argv) {
+  const args = argv.slice();
+  const fi = args.indexOf("--facts");
+  if (fi < 0) return { argv: args, facts: {} };
+  const file = args[fi + 1];
+  if (!file || file.startsWith("--")) throw new Error('Missing facts file. Usage: node tx-screen.mjs "<address>" [--facts facts/<file>.json]');
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); }
+  catch (e) { throw new Error(`Could not read facts file: ${file}`); }
+  let facts;
+  try { facts = JSON.parse(text); }
+  catch (e) { throw new Error(`Facts file is not JSON: ${file}`); }
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) throw new Error(`Facts file must be a JSON object: ${file}`);
+  args.splice(fi, 2);
+  return { argv: args, facts };
+}
+
+function cli() {
+  let parsed;
+  try { parsed = loadFacts(process.argv.slice(2)); }
+  catch (e) { console.error(e.message); process.exit(1); }
+  const address = parsed.argv.join(" ").trim();
+  if (!address) { console.error('Usage: node tx-screen.mjs "<address>" [--facts facts/<file>.json]'); process.exit(1); }
+  main(address, parsed.facts).then(rec => {
+    const dir = path.join(HERE, "records"); fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, rec.key + ".json");
+    fs.writeFileSync(file, JSON.stringify(rec, null, 2));
+    console.log(JSON.stringify({ file, address: rec.address, yes: rec.yesCount, flags: rec.flags, sources: rec.sourceLog.map(s => `${s.ok ? "OK " : "ERR"} ${s.name}${s.ok ? (s.found ? "" : " (no match)") : " · " + s.error}`) }, null, 2));
+  }).catch(e => { console.error("FAILED:", e.message); console.error(JSON.stringify(log, null, 2)); process.exit(1); });
+}
+
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) cli();
