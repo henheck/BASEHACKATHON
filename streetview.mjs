@@ -5,23 +5,46 @@ import os from "node:os";
 import path from "node:path";
 
 const HOME = path.join(os.homedir(), "claude");
-const LEDGER = path.join(HOME, "google-usage.json");
 const MONTHLY_IMAGE_CAP = 300;
 const MAX_IMAGES_PER_ADDRESS = 3;
 
-function apiKey() {
-  const env = fs.readFileSync(path.join(HOME, ".env"), "utf8");
-  const m = env.match(/GOOGLE_MAPS_API_KEY=(\S+)/);
-  if (!m) throw new Error("GOOGLE_MAPS_API_KEY missing in ~/claude/.env");
-  return m[1];
+function stripEnvValue(raw) {
+  let v = String(raw ?? "").trim();
+  const quoted = v.match(/^"([^"]*)"/) || v.match(/^'([^']*)'/);
+  if (quoted) return quoted[1].trim();
+  return v.replace(/\s+#.*$/, "").trim();
 }
+export function usagePath(env = process.env) {
+  const custom = env.GOOGLE_USAGE_PATH && String(env.GOOGLE_USAGE_PATH).trim();
+  return custom || path.join(HOME, "google-usage.json");
+}
+export function readApiKey(env = process.env, opts = {}) {
+  const fromEnv = stripEnvValue(env.GOOGLE_MAPS_API_KEY);
+  if (fromEnv) return fromEnv;
+  const readFile = opts.readFile || fs.readFileSync;
+  const files = opts.files || [path.join(HOME, ".env"), path.join(process.cwd(), ".env")];
+  for (const file of files) {
+    let text;
+    try { text = readFile(file, "utf8"); } catch (e) { continue; }
+    const m = String(text).match(/^\s*(?:export\s+)?GOOGLE_MAPS_API_KEY\s*=\s*(.*)$/m);
+    if (!m) continue;
+    const v = stripEnvValue(m[1]);
+    if (v) return v;
+  }
+  throw new Error("GOOGLE_MAPS_API_KEY is not set. Export it, or add it to ~/claude/.env or ./.env. See .env.example.");
+}
+function apiKey() { return readApiKey(); }
 function ledger() {
+  const file = usagePath();
   const month = new Date().toISOString().slice(0, 7);
   let L = { month, images: 0, metadata: 0 };
-  try { const x = JSON.parse(fs.readFileSync(LEDGER, "utf8")); if (x.month === month) L = x; } catch (e) {}
-  return L;
+  try { const x = JSON.parse(fs.readFileSync(file, "utf8")); if (x.month === month) L = x; } catch (e) {}
+  return { L, file };
 }
-const saveLedger = L => fs.writeFileSync(LEDGER, JSON.stringify(L, null, 2));
+function saveLedger(L, file) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(L, null, 2));
+}
 
 const bearing = (lat1, lon1, lat2, lon2) => {
   const t = Math.PI / 180, y = Math.sin((lon2 - lon1) * t) * Math.cos(lat2 * t);
@@ -32,7 +55,7 @@ const meters = (a, b) => Math.hypot((a.lat - b.lat) * 111320, (a.lng - b.lng) * 
 
 // target: {lat, lon}; probes: extra points (e.g. parcel corners) to find side-angle panoramas
 export async function captureStreetView(target, probes, outDir, get) {
-  const key = apiKey(), L = ledger();
+  const key = apiKey(), { L, file: ledgerFile } = ledger();
   const found = new Map();
   for (const p of [target, ...probes]) {
     const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${p.lat},${p.lon}&radius=50&source=outdoor&key=${key}`;
@@ -40,7 +63,7 @@ export async function captureStreetView(target, probes, outDir, get) {
     L.metadata++;
     if (m.status === "OK" && !found.has(m.pano_id)) found.set(m.pano_id, { pano: m.pano_id, date: m.date || null, lat: m.location.lat, lng: m.location.lng });
   }
-  saveLedger(L);
+  saveLedger(L, ledgerFile);
   const panos = [...found.values()]
     .map(p => ({ ...p, dist: meters(p, { lat: target.lat, lng: target.lon }) }))
     .sort((a, b) => a.dist - b.dist);
@@ -63,7 +86,7 @@ export async function captureStreetView(target, probes, outDir, get) {
     if (!r.ok) continue;
     const file = path.join(outDir, `sv_${images.length + 1}_h${p.heading}.jpg`);
     fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
-    L.images++; saveLedger(L);
+    L.images++; saveLedger(L, ledgerFile);
     images.push({ file, pano: p.pano, date: p.date, heading: p.heading, distM: Math.round(p.dist) });
   }
   return { status: "OK", images, newest: panos.map(p => p.date).filter(Boolean).sort().pop() || null, ledger: { month: L.month, imagesThisMonth: L.images, cap: MONTHLY_IMAGE_CAP } };

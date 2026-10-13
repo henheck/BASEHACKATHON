@@ -25,5 +25,20 @@
     "S8": {"status": "yes", "note": "A1.0 note 5 and A3.0: pad area graded level ±1%; FEMA Zone X."},
     "S9": {"status": "yes", "note": "A1.0 note 4: battery zone kept clear of landscaping, A/C and fence posts."},
     "S10": {"status": "yes", "note": "A1.0 note 2: meters on exterior garage side walls."}
+  },
+  "layout": {
+    "sheets": "A1.0 / E1.0 / A3.0",
+    "meter_wall_length_ft": 44,
+    "clear_wall_from_meter_ft": 9,
+    "windows": [
+      {"from_meter_ft": 26, "width_ft": 4, "floor": 2},
+      {"from_meter_ft": 34, "width_ft": 4, "floor": 2}
+    ],
+    "doors": [],
+    "gas_service": "no",
+    "gas_meter_from_meter_ft": null,
+    "side_clearance_in": 144,
+    "fence": "yes",
+    "meter_height_ft": 5
   }
 }

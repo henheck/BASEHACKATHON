@@ -1,16 +1,20 @@
-# Secrets — never commit
+# Secrets. Never commit.
 .env
 **/.env
 google-usage.json
 
-# Large third-party bulk downloads (county appraisal district exports, tens of MB,
-# redistribution of their raw data isn't ours to grant — regenerate via bulk/ scripts instead)
+# Large third-party bulk downloads (county appraisal district exports, tens of MB).
+# Redistribution of their raw data is not ours to grant. Regenerate via bulk/ scripts instead.
 bulk/
 
-# Google Street View imagery — real photos of real addresses, subject to Google's
-# ToS on redistribution; regenerate locally via streetview.mjs (small per-address cost)
+# Google Street View imagery. Real photos of real addresses, subject to Google's
+# terms on redistribution. Regenerate locally via streetview.mjs (small per-address cost).
 records/*_streetview/
 
 # OS/editor cruft
 .DS_Store
 Thumbs.db
+
+# Local tooling
+node_modules/
+_site/
